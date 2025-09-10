@@ -1,0 +1,92 @@
+{
+  "compilerOptions": {
+    // Modern JavaScript target for better performance
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+
+    // Strict type checking for better code quality
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+
+    // Module resolution and compatibility
+    "allowJs": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    // JSX configuration
+    "jsx": "preserve",
+    "jsxImportSource": "react",
+
+    // Performance optimizations
+    "incremental": true,
+    "skipDefaultLibCheck": true,
+
+    // Next.js plugin
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+
+    // Path mapping for clean imports
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/contexts/*": ["./src/contexts/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/types/*": ["./src/types/*"]
+    },
+
+    // Declaration and source map generation
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false,
+
+    // Import helpers for smaller bundle size
+    "importHelpers": true,
+
+    // Remove comments in production
+    "removeComments": true,
+
+
+    // Better error messages
+    "pretty": true,
+
+    // Consistent casing
+    "forceConsistentCasingInFileNames": true
+  },
+
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/**/*"],
+
+  "exclude": [
+    "node_modules",
+    ".next",
+    "out",
+    "build",
+    "dist",
+    "coverage",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx"
+  ],
+
+  // TypeScript 5.0+ features
+  "ts-node": {
+    "esm": true
+  }
+}

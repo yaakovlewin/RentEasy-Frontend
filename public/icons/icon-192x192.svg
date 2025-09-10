@@ -1,0 +1,7 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <rect width="192" height="192" rx="29" fill="#2563eb"/>
+  <path d="M96 48L144 96L96 144L48 96L96 48Z" fill="white"/>
+  <path d="M96 63.36L128.64000000000001 96L96 128.64000000000001L63.36 96L96 63.36Z" fill="#1d4ed8"/>
+  <text x="96" y="172.8" text-anchor="middle" font-family="Arial, sans-serif" font-size="19" font-weight="bold" fill="white">R</text>
+</svg>
