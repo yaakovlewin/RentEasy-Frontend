@@ -139,6 +139,7 @@ export const bookingsAPI = {
   create: bookingsClient.createBooking.bind(bookingsClient),
   getById: bookingsClient.getBookingById.bind(bookingsClient),
   cancel: bookingsClient.cancelBooking.bind(bookingsClient),
+  confirmBooking: bookingsClient.confirmBooking.bind(bookingsClient),
   getPropertyBookings: bookingsClient.getPropertyBookings.bind(bookingsClient),
 };
 
