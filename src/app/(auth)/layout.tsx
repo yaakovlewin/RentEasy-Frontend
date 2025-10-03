@@ -64,7 +64,7 @@ async function checkAuthStatus() {
 
   try {
     const payload = decodeServerJWT(token);
-    
+
     if (!payload || isTokenExpired(payload)) {
       return null; // Invalid or expired token
     }
@@ -80,7 +80,6 @@ async function checkAuthStatus() {
         return '/dashboard';
     }
   } catch (error) {
-    console.error('Auth check error in layout:', error);
     return null;
   }
 }

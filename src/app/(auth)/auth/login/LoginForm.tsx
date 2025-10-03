@@ -39,14 +39,6 @@ export default function LoginForm() {
       const redirect = searchParams.get('redirect');
       router.push(redirect || '/dashboard');
     } catch (error: unknown) {
-      try {
-        if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.error) {
-          console.error('Login error:', error);
-        }
-      } catch {
-        // Silently fail if console is not available
-      }
-
       // Display user-friendly error message
       const errorMessage = error instanceof Error ? error.message : 'Invalid email or password';
       setError(errorMessage);
@@ -55,7 +47,6 @@ export default function LoginForm() {
 
   const handleGoogleLogin = () => {
     // TODO: Implement Google OAuth
-    console.log('Google login not yet implemented');
   };
 
   const handleGuestLogin = () => {

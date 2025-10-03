@@ -18,8 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
   try {
     return generateAuthMetadata('register');
   } catch (error) {
-    console.error('Error generating register metadata:', error);
-    
     return {
       title: 'Create Your RentEasy Account | Sign Up',
       description: 'Join RentEasy to book vacation rentals, save favorites, and enjoy personalized travel experiences.',

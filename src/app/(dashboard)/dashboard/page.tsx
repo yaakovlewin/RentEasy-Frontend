@@ -21,8 +21,6 @@ export async function generateMetadata(): Promise<Metadata> {
   try {
     return generateDashboardMetadata('guest');
   } catch (error) {
-    console.error('Error generating guest dashboard metadata:', error);
-    
     return {
       title: 'My Dashboard - Bookings & Favorites | RentEasy',
       description: 'View your bookings, manage favorites, and track your travel plans on your RentEasy dashboard.',

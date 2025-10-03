@@ -35,10 +35,18 @@ export type * from './api/clients/BookingsClient';
 export type * from './api/core/HttpClient';
 export type * from './api/core/TokenManager';
 
+// Validate required environment variables
+if (!process.env.NEXT_PUBLIC_API_URL) {
+  throw new Error(
+    'NEXT_PUBLIC_API_URL is not defined. Please set it in your .env.local file. ' +
+    'See .env.example for reference.'
+  );
+}
+
 // Initialize HTTP client with enterprise configuration
 const httpClient = new HttpClient(
   {
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+    baseURL: process.env.NEXT_PUBLIC_API_URL,
     timeout: 30000,
     enableCache: true,
     enableMonitoring: true,

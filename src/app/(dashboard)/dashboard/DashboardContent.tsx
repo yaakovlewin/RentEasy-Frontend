@@ -150,7 +150,6 @@ export default function DashboardContent() {
       setEditingField(null);
       await refreshData();
     } catch (error) {
-      console.error('Failed to save profile:', error);
       throw error;
     }
   };
@@ -265,7 +264,6 @@ export default function DashboardContent() {
                         onRefresh={refreshData}
                         onRemoveFavorite={async (propertyId: string) => {
                           // TODO: Implement remove favorite logic
-                          console.log('Remove favorite:', propertyId);
                           await refreshData();
                         }}
                         onShareProperty={(propertyId: string) => {

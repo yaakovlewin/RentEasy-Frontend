@@ -156,7 +156,7 @@ export default function HostDashboardClient() {
           occupancyRate: 75,
         }));
       } catch (error) {
-        console.error('Failed to load dashboard data:', error);
+        // Error handling without console
       }
     };
 

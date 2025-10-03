@@ -55,42 +55,21 @@ async function validateDashboardAccess(): Promise<JWTPayload> {
   const cookieStore = await cookies();
   const token = cookieStore.get('token')?.value;
 
-  // DEBUG: Log server-side auth validation for development debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔐 Server Auth Validation:', {
-      hasToken: !!token,
-      tokenPreview: token ? `${token.substring(0, 20)}...` : 'none',
-      allCookies: cookieStore.getAll().map(c => ({ name: c.name, hasValue: !!c.value }))
-    });
-  }
-
   if (!token) {
     const headersList = await headers();
     const pathname = headersList.get('x-pathname') || '/dashboard';
     const loginUrl = `/auth/login?redirect=${encodeURIComponent(pathname)}`;
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🚨 Server Auth: No token found, redirecting to:', loginUrl);
-    }
-    
+
     redirect(loginUrl);
   }
 
   const validation = validateServerToken(token);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🔍 Server Token Validation:', validation);
-  }
-  
+
   if (!validation.isValid || !validation.payload) {
     const headersList = await headers();
     const pathname = headersList.get('x-pathname') || '/dashboard';
     const loginUrl = `/auth/login?redirect=${encodeURIComponent(pathname)}`;
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🚨 Server Auth: Invalid token, redirecting to:', loginUrl);
-    }
-    
+
     redirect(loginUrl);
   }
 

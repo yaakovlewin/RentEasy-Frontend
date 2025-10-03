@@ -21,14 +21,6 @@ interface DashboardErrorProps {
 
 export default function DashboardError({ error, reset }: DashboardErrorProps) {
   useEffect(() => {
-    console.error('Dashboard error occurred:', {
-      error: error.message,
-      digest: error.digest,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-      route: 'dashboard',
-    });
-
     // Report dashboard-specific errors
     if (process.env.NODE_ENV === 'production') {
       // Example: errorReporting.captureException(error, {

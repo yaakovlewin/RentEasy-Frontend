@@ -18,8 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
   try {
     return generateDashboardMetadata('host');
   } catch (error) {
-    console.error('Error generating host dashboard metadata:', error);
-    
     return {
       title: 'Host Dashboard - Manage Your Properties | RentEasy',
       description: 'Manage your vacation rental properties, view bookings, and track earnings on your RentEasy host dashboard.',

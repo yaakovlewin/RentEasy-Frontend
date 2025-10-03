@@ -23,8 +23,6 @@ export async function generateMetadata(): Promise<Metadata> {
       description: 'Manage your vacation rental properties, update listings, and track performance on your RentEasy host properties page.',
     };
   } catch (error) {
-    console.error('Error generating host properties metadata:', error);
-    
     return {
       title: 'Manage Properties - Host Dashboard | RentEasy',
       description: 'Manage your vacation rental properties, update listings, and track performance on your RentEasy host properties page.',

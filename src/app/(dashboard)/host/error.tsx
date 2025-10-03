@@ -21,16 +21,6 @@ interface HostErrorProps {
 
 export default function HostError({ error, reset }: HostErrorProps) {
   useEffect(() => {
-    console.error('Host error occurred:', {
-      error: error.message,
-      digest: error.digest,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-      route: 'host',
-      url: typeof window !== 'undefined' ? window.location.href : 'Unknown',
-      userAgent: typeof window !== 'undefined' ? navigator.userAgent : 'Unknown',
-    });
-
     // Report host-specific errors with higher priority
     if (process.env.NODE_ENV === 'production') {
       // Example: errorReporting.captureException(error, {

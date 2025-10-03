@@ -22,8 +22,6 @@ export async function generateMetadata(): Promise<Metadata> {
       '/host'
     );
   } catch (error) {
-    console.error('Error generating become host metadata:', error);
-    
     return {
       title: 'Become a Host - Start Earning with RentEasy',
       description: 'Share your space with travelers and earn money with RentEasy\'s trusted platform. Join thousands of hosts already earning extra income.',

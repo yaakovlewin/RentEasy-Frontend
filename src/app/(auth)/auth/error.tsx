@@ -21,15 +21,6 @@ interface AuthErrorProps {
 
 export default function AuthError({ error, reset }: AuthErrorProps) {
   useEffect(() => {
-    console.error('Authentication error occurred:', {
-      error: error.message,
-      digest: error.digest,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-      route: 'auth',
-      url: typeof window !== 'undefined' ? window.location.pathname : 'Unknown',
-    });
-
     // Report auth-specific errors (be careful with sensitive data)
     if (process.env.NODE_ENV === 'production') {
       // Example: errorReporting.captureException(error, {

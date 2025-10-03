@@ -69,13 +69,6 @@ export default function RegisterPageClient() {
       // Redirect to dashboard after successful registration
       router.push('/dashboard');
     } catch (error: any) {
-      try {
-        if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.error) {
-          console.error('Registration error:', error);
-        }
-      } catch (e) {
-        // Silently fail if console is not available
-      }
       setError(error.response?.data?.message || 'Registration failed. Please try again.');
     }
   };

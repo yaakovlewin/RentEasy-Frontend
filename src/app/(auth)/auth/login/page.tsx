@@ -20,8 +20,6 @@ export async function generateMetadata(): Promise<Metadata> {
   try {
     return generateAuthMetadata('login');
   } catch (error) {
-    console.error('Error generating login metadata:', error);
-    
     return {
       title: 'Login to Your Account | RentEasy',
       description: 'Login to your RentEasy account to manage bookings, save favorites, and access your dashboard.',
