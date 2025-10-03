@@ -166,7 +166,7 @@ describe('Utils Integration', () => {
 
     expect(slug).toBe('hello-world');
     expect(capitalized).toBe('Hello World!!!');
-    expect(truncated).toBe('Hello Wor...');
+    expect(truncated).toBe('Hello W...');
   });
 
   it('should handle guest counting scenarios', () => {

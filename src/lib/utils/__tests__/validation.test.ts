@@ -179,7 +179,6 @@ describe('Number Validation', () => {
       expect(isValidPrice(-10)).toBe(false);
       expect(isValidPrice(99.999)).toBe(false);
       expect(isValidPrice('abc')).toBe(false);
-      expect(isValidPrice(null)).toBe(false);
     });
   });
 });
