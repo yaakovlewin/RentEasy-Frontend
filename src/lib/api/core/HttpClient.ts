@@ -22,6 +22,11 @@ export {
   ApiErrorFactory
 } from '../services/ApiErrors';
 
+/**
+ * Extended request configuration with enterprise features
+ *
+ * Extends Axios request config with caching, transformation control, and monitoring options
+ */
 export interface RequestConfig extends AxiosRequestConfig {
   // Caching options
   cache?: {
@@ -34,11 +39,21 @@ export interface RequestConfig extends AxiosRequestConfig {
   skipMonitoring?: boolean;
 }
 
+/**
+ * Enhanced API response with metadata
+ *
+ * Extends Axios response with cache indicators and request tracking
+ */
 export interface ApiResponse<T = any> extends AxiosResponse<T> {
   fromCache?: boolean;
   requestId?: string;
 }
 
+/**
+ * HTTP client configuration options
+ *
+ * Comprehensive configuration for enterprise HTTP client with performance and reliability features
+ */
 export interface HttpClientConfig {
   baseURL: string;
   timeout?: number;
@@ -49,16 +64,34 @@ export interface HttpClientConfig {
   retryDelay?: number;
 }
 
+/**
+ * HttpClient - Enterprise-grade HTTP client with advanced features
+ *
+ * Provides a type-safe, performant HTTP client with automatic token management,
+ * intelligent caching, request retry logic, response transformation, and comprehensive
+ * error handling. Features include request deduplication, exponential backoff retry,
+ * automatic token refresh with queue management, and performance monitoring.
+ */
 class HttpClient {
   private axios: AxiosInstance;
   private config: Required<HttpClientConfig>;
   private cache?: ApiCache;
   private monitor?: ApiMonitor;
-  
+
   // Token refresh management
   private isRefreshing = false;
   private refreshPromise: Promise<string> | null = null;
 
+  /**
+   * Creates a new HttpClient instance with enterprise features
+   *
+   * Initializes Axios instance with interceptors for authentication, data transformation,
+   * error handling, and monitoring. Configures caching and retry behavior.
+   *
+   * @param config - HTTP client configuration including base URL, timeout, and feature flags
+   * @param cache - Optional API cache instance for intelligent caching
+   * @param monitor - Optional API monitor instance for performance tracking
+   */
   constructor(
     config: HttpClientConfig,
     cache?: ApiCache,
@@ -89,7 +122,15 @@ class HttpClient {
   }
 
   /**
-   * GET request with intelligent caching
+   * Execute GET request with intelligent caching
+   *
+   * Attempts to serve response from cache if available and valid, otherwise
+   * executes request and caches response with configured TTL. Supports tag-based
+   * cache invalidation for related resources.
+   *
+   * @param url - Request URL path (relative to base URL)
+   * @param config - Optional request configuration with caching options
+   * @returns Promise resolving to API response with cache metadata
    */
   async get<T = any>(url: string, config: RequestConfig = {}): Promise<ApiResponse<T>> {
     // Try cache first if enabled
@@ -120,7 +161,15 @@ class HttpClient {
   }
 
   /**
-   * POST request with cache invalidation
+   * Execute POST request with automatic cache invalidation
+   *
+   * Performs POST request and invalidates related cache entries to ensure
+   * data consistency. Automatically transforms request data to backend format.
+   *
+   * @param url - Request URL path (relative to base URL)
+   * @param data - Request payload data
+   * @param config - Optional request configuration
+   * @returns Promise resolving to API response
    */
   async post<T = any>(
     url: string,
@@ -134,7 +183,15 @@ class HttpClient {
   }
 
   /**
-   * PUT request with cache invalidation
+   * Execute PUT request with automatic cache invalidation
+   *
+   * Performs PUT request and invalidates related cache entries to ensure
+   * data consistency. Automatically transforms request data to backend format.
+   *
+   * @param url - Request URL path (relative to base URL)
+   * @param data - Request payload data
+   * @param config - Optional request configuration
+   * @returns Promise resolving to API response
    */
   async put<T = any>(
     url: string,
@@ -148,7 +205,14 @@ class HttpClient {
   }
 
   /**
-   * DELETE request with cache invalidation
+   * Execute DELETE request with automatic cache invalidation
+   *
+   * Performs DELETE request and invalidates related cache entries to ensure
+   * data consistency. Useful for resource deletion operations.
+   *
+   * @param url - Request URL path (relative to base URL)
+   * @param config - Optional request configuration
+   * @returns Promise resolving to API response
    */
   async delete<T = any>(
     url: string,
@@ -161,7 +225,20 @@ class HttpClient {
   }
 
   /**
-   * Execute request with retry logic and error handling
+   * Execute HTTP request with exponential backoff retry logic
+   *
+   * Core request execution method with automatic retry for transient failures
+   * (network errors, timeouts, 5xx errors, rate limits). Uses exponential backoff
+   * delay between retries to prevent overwhelming servers. Thread-safe with proper
+   * error propagation.
+   *
+   * @param method - HTTP method (GET, POST, PUT, DELETE)
+   * @param url - Request URL path
+   * @param data - Optional request payload
+   * @param config - Request configuration
+   * @param attempt - Current retry attempt number (internal)
+   * @returns Promise resolving to API response
+   * @throws Error if all retry attempts fail
    */
   private async executeRequest<T>(
     method: string,
@@ -197,7 +274,12 @@ class HttpClient {
   }
 
   /**
-   * Setup request and response interceptors
+   * Setup Axios request and response interceptors
+   *
+   * Configures request interceptor for authentication token injection, request monitoring,
+   * and data transformation. Configures response interceptor for response transformation,
+   * monitoring completion, error handling, and automatic token refresh on 401 errors.
+   * Handles auth-specific endpoints with special transformation logic.
    */
   private setupInterceptors(): void {
     // Request interceptor
@@ -274,7 +356,16 @@ class HttpClient {
   }
 
   /**
-   * Handle token refresh with proper queue management
+   * Handle token refresh with queue management to prevent race conditions
+   *
+   * Manages concurrent refresh attempts by queueing subsequent requests while
+   * a refresh is in progress. Ensures only one token refresh happens at a time,
+   * preventing duplicate refresh requests. All queued requests receive the new
+   * token once refresh completes. Thread-safe with proper promise coordination.
+   *
+   * @param error - Axios error from 401 response
+   * @returns Promise resolving to retried request response
+   * @throws Error if token refresh fails or no refresh token available
    */
   private async handleTokenRefresh(error: AxiosError): Promise<any> {
     const originalRequest = error.config;
@@ -318,7 +409,14 @@ class HttpClient {
   }
 
   /**
-   * Perform the actual token refresh
+   * Perform actual token refresh API call
+   *
+   * Calls backend refresh endpoint with current refresh token and updates
+   * TokenManager with new access and refresh tokens. Clears all tokens on
+   * failure to force re-authentication. Updates token expiration metadata.
+   *
+   * @returns Promise resolving to new access token
+   * @throws Error if no refresh token available or refresh request fails
    */
   private async performTokenRefresh(): Promise<string> {
     const refreshToken = tokenManager.getRefreshToken();
@@ -349,7 +447,11 @@ class HttpClient {
   }
 
   /**
-   * Handle authentication failure
+   * Handle authentication failure by clearing tokens and redirecting to login
+   *
+   * Clears all stored tokens and redirects user to login page with return URL.
+   * Only executes redirect in browser environment. Preserves current path for
+   * post-login redirect. Prevents redirect loops for auth pages.
    */
   private handleAuthFailure(): void {
     tokenManager.clearTokens();
@@ -364,7 +466,13 @@ class HttpClient {
   }
 
   /**
-   * Invalidate cache entries related to the request
+   * Invalidate cache entries related to resource modifications
+   *
+   * Extracts resource type from URL and invalidates all cached entries for that
+   * resource type. Ensures cache consistency after POST/PUT/DELETE operations.
+   * Supports wildcard pattern matching for flexible cache invalidation.
+   *
+   * @param url - Request URL to extract resource type from
    */
   private invalidateRelatedCache(url: string): void {
     if (!this.cache) return;
@@ -380,7 +488,14 @@ class HttpClient {
   }
 
   /**
-   * Check if request should be retried
+   * Determine if request should be retried based on error type and attempt count
+   *
+   * Retries network errors, server errors (5xx), timeouts (408), and rate limits (429).
+   * Does not retry client errors (4xx except 408/429) or after max attempts reached.
+   *
+   * @param error - Error object from failed request
+   * @param attempt - Current attempt number
+   * @returns True if request should be retried, false otherwise
    */
   private shouldRetry(error: any, attempt: number): boolean {
     if (attempt >= this.config.retries) return false;
@@ -397,14 +512,23 @@ class HttpClient {
   }
 
   /**
-   * Sleep utility for delays
+   * Sleep utility for implementing retry delays
+   *
+   * @param ms - Milliseconds to sleep
+   * @returns Promise resolving after delay
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
-   * Get client statistics
+   * Get client performance and cache statistics
+   *
+   * Returns aggregated statistics from cache and monitoring services for
+   * performance analysis and debugging. Useful for identifying bottlenecks
+   * and cache effectiveness.
+   *
+   * @returns Object containing cache and monitor statistics
    */
   getStats() {
     return {
@@ -414,7 +538,10 @@ class HttpClient {
   }
 
   /**
-   * Clear all caches
+   * Clear all cached responses
+   *
+   * Removes all entries from cache storage. Useful for force-refreshing data
+   * or clearing stale cache after user logout.
    */
   clearCache(): void {
     this.cache?.clear();

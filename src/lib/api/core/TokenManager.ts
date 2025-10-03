@@ -5,6 +5,12 @@
  * and reactive updates. Built for modern TypeScript applications.
  */
 
+/**
+ * Token data structure for enterprise authentication
+ *
+ * Contains all authentication-related token information including access token,
+ * refresh token, expiration metadata, and session tracking.
+ */
 export interface TokenData {
   accessToken: string;
   refreshToken?: string;
@@ -14,8 +20,22 @@ export interface TokenData {
   refreshTokenExpiry?: number;
 }
 
+/**
+ * Callback function for reactive token change notifications
+ *
+ * @param tokenData - New token data or null if tokens were cleared
+ */
 type TokenChangeListener = (tokenData: TokenData | null) => void;
 
+/**
+ * TokenManager - Enterprise-grade token management with automatic refresh
+ *
+ * Manages JWT authentication tokens with automatic refresh scheduling, secure storage
+ * across localStorage and cookies, reactive state updates, and SSR compatibility.
+ * Features include proactive token refresh, queue management for concurrent requests,
+ * cross-tab synchronization, and browser/server environment detection. Implements
+ * singleton pattern for global token state management.
+ */
 class TokenManager {
   private memoryStorage: TokenData | null = null;
   private listeners: Set<TokenChangeListener> = new Set();
@@ -31,7 +51,16 @@ class TokenManager {
   private refreshTimer: NodeJS.Timeout | null = null;
 
   /**
-   * Set tokens with automatic persistence and reactive updates
+   * Set authentication tokens with automatic persistence and reactive updates
+   *
+   * Stores tokens in memory for fast access, persists to localStorage for browser refresh
+   * compatibility, and syncs to cookies for server-side authentication. Schedules automatic
+   * token refresh based on expiration time and notifies all registered listeners. Handles
+   * localhost development environment by removing secure cookie flag.
+   *
+   * Side effects: Updates localStorage, document.cookie, schedules refresh timer, triggers listeners
+   *
+   * @param tokenData - Complete token data including access token, refresh token, and metadata
    */
   setTokens(tokenData: TokenData): void {
     // Store in memory for fast access
@@ -80,7 +109,14 @@ class TokenManager {
   }
 
   /**
-   * Get access token - primary method for authentication
+   * Get current access token for request authentication
+   *
+   * Attempts to retrieve access token from in-memory storage first (fastest),
+   * then falls back to localStorage (browser refresh scenario). Automatically
+   * syncs tokens to cookies if found in localStorage but not in memory to fix
+   * localStorage/cookie mismatches that cause authentication issues.
+   *
+   * @returns Access token string or null if not authenticated
    */
   getAccessToken(): string | null {
     // Try memory first (fastest)
@@ -105,7 +141,12 @@ class TokenManager {
   }
 
   /**
-   * Get refresh token for automatic token refresh
+   * Get refresh token for automatic token refresh operations
+   *
+   * Retrieves refresh token from in-memory storage first, then falls back
+   * to localStorage. Used by token refresh mechanism to obtain new access tokens.
+   *
+   * @returns Refresh token string or null if not available
    */
   getRefreshToken(): string | null {
     // Try memory first
@@ -122,7 +163,13 @@ class TokenManager {
   }
 
   /**
-   * Clear all tokens - used by logout and auth failures
+   * Clear all authentication tokens and session data
+   *
+   * Removes tokens from memory, localStorage, and cookies. Cancels scheduled
+   * automatic refresh timer and notifies all listeners of token clearance.
+   * Used during logout and authentication failures to ensure clean state.
+   *
+   * Side effects: Clears memory, localStorage, cookies, cancels timers, triggers listeners
    */
   clearTokens(): void {
     this.memoryStorage = null;
@@ -148,7 +195,12 @@ class TokenManager {
   }
 
   /**
-   * Check if user has valid tokens
+   * Check if user has valid authentication tokens
+   *
+   * Verifies presence of access token without checking expiration.
+   * Use isAccessTokenExpired() for expiration validation.
+   *
+   * @returns True if access token exists, false otherwise
    */
   hasTokens(): boolean {
     const token = this.getAccessToken();
@@ -156,8 +208,14 @@ class TokenManager {
   }
 
   /**
-   * Sync tokens from localStorage to cookies (for server-side auth)
-   * This fixes the localStorage/cookie mismatch that causes infinite redirects
+   * Sync tokens from localStorage to cookies for server-side authentication
+   *
+   * Fixes localStorage/cookie mismatch that causes infinite redirect loops.
+   * Updates cookies without modifying localStorage or triggering listeners.
+   * Only syncs when tokens exist in localStorage. Handles localhost development
+   * by removing secure cookie flag.
+   *
+   * Side effects: Updates document.cookie only
    */
   private syncTokensFromLocalStorage(): void {
     if (typeof window === 'undefined') return;
@@ -183,7 +241,13 @@ class TokenManager {
   }
 
   /**
-   * Check if access token is expired
+   * Check if access token has expired
+   *
+   * Validates token expiration using stored expiration metadata or by decoding
+   * JWT payload if metadata unavailable. Returns true if token is expired or
+   * cannot be validated.
+   *
+   * @returns True if token is expired or invalid, false otherwise
    */
   isAccessTokenExpired(): boolean {
     if (!this.memoryStorage?.expiresAt) {
@@ -195,7 +259,13 @@ class TokenManager {
   }
 
   /**
-   * Check if token needs refresh soon (proactive refresh)
+   * Check if token needs proactive refresh soon
+   *
+   * Returns true if token expires within 5 minutes, allowing proactive refresh
+   * before expiration to prevent authentication failures during active sessions.
+   * Uses stored expiration metadata or JWT decoding with 5-minute buffer.
+   *
+   * @returns True if token should be refreshed proactively, false otherwise
    */
   needsRefresh(): boolean {
     if (!this.memoryStorage?.expiresAt) {
@@ -209,7 +279,13 @@ class TokenManager {
   }
 
   /**
-   * Calculate token expiration from JWT payload
+   * Calculate token expiration timestamp from JWT payload
+   *
+   * Decodes JWT token to extract 'exp' claim and converts to millisecond timestamp.
+   * Falls back to 1 hour default expiration if decoding fails or exp claim missing.
+   *
+   * @param token - JWT access token string
+   * @returns Expiration timestamp in milliseconds
    */
   calculateTokenExpiration(token: string): number {
     try {
@@ -224,7 +300,12 @@ class TokenManager {
   }
 
   /**
-   * Get token payload (for user info extraction)
+   * Get decoded JWT token payload for user information extraction
+   *
+   * Decodes current access token and returns payload object containing user
+   * claims (id, email, role, etc.). Returns null if no token or decode fails.
+   *
+   * @returns Decoded JWT payload object or null
    */
   getTokenPayload(): any {
     const token = this.getAccessToken();
@@ -241,7 +322,28 @@ class TokenManager {
   }
 
   /**
-   * Subscribe to token changes (reactive updates)
+   * Subscribe to token changes for reactive state updates
+   *
+   * Registers callback to be notified when tokens are set or cleared.
+   * Used by React components and contexts to sync authentication state.
+   * Returns unsubscribe function for cleanup.
+   *
+   * @param callback - Function called with new token data or null when tokens cleared
+   * @returns Unsubscribe function to remove listener
+   *
+   * @example
+   * ```typescript
+   * const unsubscribe = tokenManager.onTokenChange((tokenData) => {
+   *   if (tokenData) {
+   *     console.log('User logged in:', tokenData.accessToken);
+   *   } else {
+   *     console.log('User logged out');
+   *   }
+   * });
+   *
+   * // Later: cleanup
+   * unsubscribe();
+   * ```
    */
   onTokenChange(callback: TokenChangeListener): () => void {
     this.listeners.add(callback);
@@ -249,28 +351,52 @@ class TokenManager {
   }
 
   /**
-   * Check if token refresh is in progress (prevents duplicate requests)
+   * Check if token refresh is currently in progress
+   *
+   * Used to prevent duplicate concurrent refresh requests. Returns true when
+   * refresh operation is active.
+   *
+   * @returns True if refresh in progress, false otherwise
    */
   isRefreshingTokens(): boolean {
     return this.isRefreshing;
   }
 
   /**
-   * Set refresh state (used by interceptor)
+   * Set token refresh state flag
+   *
+   * Internal method used by HTTP interceptor to coordinate refresh operations.
+   * Sets refresh state to prevent concurrent refresh attempts.
+   *
+   * @param refreshing - True when refresh starts, false when complete
    */
   setRefreshState(refreshing: boolean): void {
     this.isRefreshing = refreshing;
   }
 
   /**
-   * Queue failed requests during token refresh
+   * Queue failed request during token refresh for retry after refresh completes
+   *
+   * Internal method used by HTTP interceptor to queue requests that failed with
+   * 401 errors while token refresh is in progress. Queued requests are retried
+   * with new token once refresh completes.
+   *
+   * @param resolve - Promise resolve function to call on successful refresh
+   * @param reject - Promise reject function to call on failed refresh
    */
   queueFailedRequest(resolve: (value?: any) => void, reject: (reason?: any) => void): void {
     this.failedQueue.push({ resolve, reject });
   }
 
   /**
-   * Process queued requests after successful token refresh
+   * Process queued requests after token refresh completes
+   *
+   * Internal method used by HTTP interceptor to resolve or reject all queued
+   * requests after refresh operation completes. Provides new token to successful
+   * requests or propagates error to failed requests.
+   *
+   * @param error - Error object if refresh failed, null if successful
+   * @param token - New access token if refresh succeeded, null if failed
    */
   processQueue(error: any, token: string | null = null): void {
     this.failedQueue.forEach(({ resolve, reject }) => {
@@ -285,7 +411,11 @@ class TokenManager {
   }
 
   /**
-   * Initialize tokens from storage on app startup
+   * Initialize token state from localStorage on application startup
+   *
+   * Loads stored tokens from localStorage into memory storage and notifies
+   * listeners. Calculates token expiration from JWT payload. Only executes
+   * in browser environment. Should be called once during app initialization.
    */
   initializeFromStorage(): void {
     if (typeof window !== 'undefined') {
@@ -306,13 +436,26 @@ class TokenManager {
   }
 
   /**
-   * Check if storage is available (SSR compatibility)
+   * Check if localStorage is available in current environment
+   *
+   * Detects browser environment and localStorage API availability.
+   * Returns false in SSR/Node.js environments. Used for SSR compatibility.
+   *
+   * @returns True if localStorage available, false in SSR or unsupported browsers
    */
   isStorageAvailable(): boolean {
     return typeof window !== 'undefined' && 'localStorage' in window;
   }
 
-  // Private helper methods
+  /**
+   * Notify all registered listeners of token changes
+   *
+   * Internal method that calls all registered callbacks with new token data.
+   * Catches and logs errors from individual listeners to prevent one listener
+   * from breaking others. Called when tokens are set or cleared.
+   *
+   * @param tokenData - New token data or null if tokens cleared
+   */
   private notifyListeners(tokenData: TokenData | null): void {
     this.listeners.forEach(listener => {
       try {
@@ -323,6 +466,17 @@ class TokenManager {
     });
   }
 
+  /**
+   * Check if JWT token is expired with optional buffer time
+   *
+   * Decodes JWT to extract expiration claim and compares with current time plus
+   * buffer. Returns true if token is null, malformed, or expired. Buffer allows
+   * proactive refresh before actual expiration.
+   *
+   * @param token - JWT token string to check
+   * @param bufferMs - Buffer time in milliseconds to add to current time (default: 0)
+   * @returns True if token is expired or invalid, false otherwise
+   */
   private isJWTExpired(token: string | null, bufferMs: number = 0): boolean {
     if (!token) return true;
     
@@ -343,8 +497,15 @@ class TokenManager {
   }
 
   /**
-   * ENTERPRISE FEATURE: Schedule automatic token refresh
-   * Refreshes tokens 2 minutes before expiry to prevent auth failures
+   * Schedule automatic token refresh before expiration
+   *
+   * Enterprise feature that schedules proactive token refresh 2 minutes before
+   * expiration to prevent authentication failures during active sessions. Validates
+   * refresh timing (30 seconds minimum, 24 hours maximum) and cancels existing
+   * timers. Clears tokens automatically if refresh fails. Only schedules if valid
+   * expiration metadata exists.
+   *
+   * Side effects: Sets timeout timer, imports API client dynamically, may clear tokens on failure
    */
   private scheduleTokenRefresh(): void {
     if (!this.memoryStorage?.expiresAt) return;
@@ -391,14 +552,24 @@ class TokenManager {
   }
 
   /**
-   * ENTERPRISE FEATURE: Get session ID for backend session management
+   * Get session ID for backend session management
+   *
+   * Enterprise feature for session tracking and management. Returns session ID
+   * from token metadata if available.
+   *
+   * @returns Session ID string or null if not available
    */
   getSessionId(): string | null {
     return this.memoryStorage?.sessionId || null;
   }
 
   /**
-   * ENTERPRISE FEATURE: Check if token needs proactive refresh
+   * Check if token should be refreshed proactively
+   *
+   * Enterprise feature for proactive token refresh. Returns true if token expires
+   * within 5 minutes, allowing refresh before expiration during active sessions.
+   *
+   * @returns True if proactive refresh recommended, false otherwise
    */
   shouldRefreshProactively(): boolean {
     if (!this.memoryStorage?.expiresAt) return false;
