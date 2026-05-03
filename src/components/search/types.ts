@@ -39,12 +39,19 @@ export interface LocationInputProps extends BaseComponentProps {
   onChange: (value: string) => void;
   onSuggestionSelect?: (suggestion: LocationSuggestion) => void;
   placeholder?: string;
-  suggestions?: LocationSuggestion[];
+  suggestions?: readonly LocationSuggestion[];
   maxSuggestions?: number;
   debounceMs?: number;
   autoComplete?: boolean;
   disabled?: boolean;
   loading?: boolean;
+}
+
+export interface SuggestionItemProps {
+  suggestion: LocationSuggestion;
+  isSelected: boolean;
+  onSelect: (suggestion: LocationSuggestion) => void;
+  testId?: string;
 }
 
 // Date Types

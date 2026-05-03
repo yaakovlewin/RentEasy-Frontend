@@ -1,9 +1,13 @@
 /**
  * TokenManager - Modern enterprise token management
- * 
+ *
  * Clean, type-safe token management with automatic refresh, secure storage,
  * and reactive updates. Built for modern TypeScript applications.
  */
+
+import { isBrowser, hasLocalStorage } from '../../utils/environment';
+import { setCookie, deleteCookie } from '../../utils/cookies';
+import { TIME } from '../../utils/time';
 
 /**
  * Token data structure for enterprise authentication
@@ -28,6 +32,44 @@ export interface TokenData {
 type TokenChangeListener = (tokenData: TokenData | null) => void;
 
 /**
+ * JWT payload structure
+ */
+export interface JWTPayload {
+  exp?: number;
+  iat?: number;
+  sub?: string;
+  userId?: string;
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  role?: 'guest' | 'owner' | 'staff' | 'admin';
+  phoneNumber?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Configuration constants for token management
+ */
+const TOKEN_CONFIG = {
+  REFRESH_BUFFER_MS: 5 * TIME.MINUTE,
+  AUTO_REFRESH_OFFSET_MS: 2 * TIME.MINUTE,
+  DEFAULT_ACCESS_TOKEN_TTL_MS: TIME.HOUR,
+  DEFAULT_REFRESH_TOKEN_TTL_MS: TIME.WEEK,
+  MIN_REFRESH_TIME_MS: 30 * TIME.SECOND,
+  MAX_REFRESH_TIME_MS: TIME.DAY,
+} as const;
+
+/**
+ * Storage keys for token persistence
+ */
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'token',
+  REFRESH_TOKEN: 'refreshToken',
+  USER: 'user',
+} as const;
+
+/**
  * TokenManager - Enterprise-grade token management with automatic refresh
  *
  * Manages JWT authentication tokens with automatic refresh scheduling, secure storage
@@ -43,8 +85,8 @@ class TokenManager {
   // Modern refresh state management with proper typing
   private isRefreshing = false;
   private failedQueue: Array<{
-    resolve: (token: string) => void;
-    reject: (reason: any) => void;
+    resolve: (token: string | null) => void;
+    reject: (reason: unknown) => void;
   }> = [];
   
   // Enterprise features: automatic refresh scheduling
@@ -63,48 +105,18 @@ class TokenManager {
    * @param tokenData - Complete token data including access token, refresh token, and metadata
    */
   setTokens(tokenData: TokenData): void {
-    // Store in memory for fast access
     this.memoryStorage = tokenData;
-    
-    // Persist to localStorage for browser refresh compatibility
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', tokenData.accessToken);
-      if (tokenData.refreshToken) {
-        localStorage.setItem('refreshToken', tokenData.refreshToken);
-      }
-      
-      // CRITICAL FIX: Also set cookies for server-side auth validation
-      // This prevents the infinite redirect loop between client localStorage and server cookies
-      const tokenExpires = tokenData.expiresAt ? new Date(tokenData.expiresAt).toUTCString() : '';
-      
-      // DEVELOPMENT-FRIENDLY: Remove secure flag for localhost development
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const secureFlag = isLocalhost ? '' : 'secure; ';
-      const cookieOptions = `path=/; ${tokenExpires ? `expires=${tokenExpires}; ` : ''}${secureFlag}samesite=lax`;
-      
-      document.cookie = `token=${tokenData.accessToken}; ${cookieOptions}`;
-      
-      let refreshExpires = '';
-      if (tokenData.refreshToken) {
-        // Refresh token typically lasts longer (7 days default)
-        refreshExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
-        document.cookie = `refreshToken=${tokenData.refreshToken}; path=/; expires=${refreshExpires}; ${secureFlag}samesite=lax`;
-      }
-      
-      // DEBUG: Log cookie setting for development debugging
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🍪 TokenManager: Setting cookies', {
-          tokenCookie: `token=${tokenData.accessToken}; ${cookieOptions}`,
-          refreshCookie: tokenData.refreshToken ? `refreshToken=${tokenData.refreshToken}; path=/; expires=${refreshExpires}; ${secureFlag}samesite=lax` : 'none',
-          allCookies: document.cookie
-        });
-      }
+
+    if (isBrowser()) {
+      this.persistToLocalStorage(tokenData);
+      this.syncTokensToCookies(
+        tokenData.accessToken,
+        tokenData.refreshToken,
+        tokenData.expiresAt
+      );
     }
-    
-    // Enterprise feature: Schedule automatic refresh
+
     this.scheduleTokenRefresh();
-    
-    // Notify listeners for reactive updates
     this.notifyListeners(tokenData);
   }
 
@@ -119,24 +131,20 @@ class TokenManager {
    * @returns Access token string or null if not authenticated
    */
   getAccessToken(): string | null {
-    // Try memory first (fastest)
     if (this.memoryStorage?.accessToken) {
       return this.memoryStorage.accessToken;
     }
-    
-    // Fallback to localStorage (browser refresh scenario)
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      
-      // CRITICAL FIX: If we have token in localStorage but not in memory,
-      // sync it to cookies for server-side auth validation
+
+    if (isBrowser()) {
+      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+
       if (token) {
         this.syncTokensFromLocalStorage();
       }
-      
+
       return token;
     }
-    
+
     return null;
   }
 
@@ -149,16 +157,14 @@ class TokenManager {
    * @returns Refresh token string or null if not available
    */
   getRefreshToken(): string | null {
-    // Try memory first
     if (this.memoryStorage?.refreshToken) {
       return this.memoryStorage.refreshToken;
     }
-    
-    // Fallback to localStorage
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('refreshToken');
+
+    if (isBrowser()) {
+      return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
     }
-    
+
     return null;
   }
 
@@ -173,24 +179,17 @@ class TokenManager {
    */
   clearTokens(): void {
     this.memoryStorage = null;
-    
-    // Clear automatic refresh timer
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-      this.refreshTimer = null;
+    this.cancelRefreshTimer();
+
+    if (isBrowser()) {
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+
+      deleteCookie(STORAGE_KEYS.ACCESS_TOKEN);
+      deleteCookie(STORAGE_KEYS.REFRESH_TOKEN);
     }
-    
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      
-      // CRITICAL FIX: Also clear cookies for server-side auth
-      // This prevents server-side auth validation from finding stale cookies
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      document.cookie = 'refreshToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-    }
-    
+
     this.notifyListeners(null);
   }
 
@@ -218,25 +217,14 @@ class TokenManager {
    * Side effects: Updates document.cookie only
    */
   private syncTokensFromLocalStorage(): void {
-    if (typeof window === 'undefined') return;
-    
-    const accessToken = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    
+    if (!isBrowser()) return;
+
+    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+
     if (accessToken) {
-      // Only sync to cookies, don't overwrite localStorage or notify listeners
-      const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString(); // 24h default
-      
-      // DEVELOPMENT-FRIENDLY: Remove secure flag for localhost
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const secureFlag = isLocalhost ? '' : 'secure; ';
-      const cookieOptions = `path=/; expires=${tokenExpires}; ${secureFlag}samesite=lax`;
-      
-      document.cookie = `token=${accessToken}; ${cookieOptions}`;
-      if (refreshToken) {
-        const refreshExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
-        document.cookie = `refreshToken=${refreshToken}; path=/; expires=${refreshExpires}; ${secureFlag}samesite=lax`;
-      }
+      const tokenExpires = Date.now() + TIME.DAY;
+      this.syncTokensToCookies(accessToken, refreshToken || undefined, tokenExpires);
     }
   }
 
@@ -269,13 +257,11 @@ class TokenManager {
    */
   needsRefresh(): boolean {
     if (!this.memoryStorage?.expiresAt) {
-      // Check JWT expiry with 5-minute buffer
-      return this.isJWTExpired(this.getAccessToken(), 5 * 60 * 1000);
+      return this.isJWTExpired(this.getAccessToken(), TOKEN_CONFIG.REFRESH_BUFFER_MS);
     }
-    
-    // Refresh if expires within 5 minutes
-    const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000);
-    return this.memoryStorage.expiresAt <= fiveMinutesFromNow;
+
+    const bufferTime = Date.now() + TOKEN_CONFIG.REFRESH_BUFFER_MS;
+    return this.memoryStorage.expiresAt <= bufferTime;
   }
 
   /**
@@ -288,15 +274,10 @@ class TokenManager {
    * @returns Expiration timestamp in milliseconds
    */
   calculateTokenExpiration(token: string): number {
-    try {
-      const payload = token.split('.')[1];
-      if (!payload) return Date.now() + (60 * 60 * 1000); // 1 hour default
-      
-      const decoded = JSON.parse(atob(payload));
-      return decoded.exp ? decoded.exp * 1000 : Date.now() + (60 * 60 * 1000);
-    } catch {
-      return Date.now() + (60 * 60 * 1000); // 1 hour fallback
-    }
+    const decoded = this.decodeJWT(token);
+    return decoded?.exp
+      ? decoded.exp * 1000
+      : Date.now() + TOKEN_CONFIG.DEFAULT_ACCESS_TOKEN_TTL_MS;
   }
 
   /**
@@ -307,18 +288,9 @@ class TokenManager {
    *
    * @returns Decoded JWT payload object or null
    */
-  getTokenPayload(): any {
+  getTokenPayload(): JWTPayload | null {
     const token = this.getAccessToken();
-    if (!token) return null;
-    
-    try {
-      const payload = token.split('.')[1];
-      if (!payload) return null;
-      
-      return JSON.parse(atob(payload));
-    } catch {
-      return null;
-    }
+    return token ? this.decodeJWT(token) : null;
   }
 
   /**
@@ -384,7 +356,7 @@ class TokenManager {
    * @param resolve - Promise resolve function to call on successful refresh
    * @param reject - Promise reject function to call on failed refresh
    */
-  queueFailedRequest(resolve: (value?: any) => void, reject: (reason?: any) => void): void {
+  queueFailedRequest(resolve: (value: string | null) => void, reject: (reason: unknown) => void): void {
     this.failedQueue.push({ resolve, reject });
   }
 
@@ -398,7 +370,7 @@ class TokenManager {
    * @param error - Error object if refresh failed, null if successful
    * @param token - New access token if refresh succeeded, null if failed
    */
-  processQueue(error: any, token: string | null = null): void {
+  processQueue(error: unknown, token: string | null = null): void {
     this.failedQueue.forEach(({ resolve, reject }) => {
       if (error) {
         reject(error);
@@ -406,7 +378,7 @@ class TokenManager {
         resolve(token);
       }
     });
-    
+
     this.failedQueue = [];
   }
 
@@ -418,17 +390,17 @@ class TokenManager {
    * in browser environment. Should be called once during app initialization.
    */
   initializeFromStorage(): void {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      const refreshToken = localStorage.getItem('refreshToken');
-      
+    if (isBrowser()) {
+      const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+
       if (token) {
         const tokenData: TokenData = {
           accessToken: token,
           refreshToken: refreshToken || undefined,
           expiresAt: this.calculateTokenExpiration(token)
         };
-        
+
         this.memoryStorage = tokenData;
         this.notifyListeners(tokenData);
       }
@@ -444,7 +416,7 @@ class TokenManager {
    * @returns True if localStorage available, false in SSR or unsupported browsers
    */
   isStorageAvailable(): boolean {
-    return typeof window !== 'undefined' && 'localStorage' in window;
+    return hasLocalStorage();
   }
 
   /**
@@ -478,22 +450,14 @@ class TokenManager {
    * @returns True if token is expired or invalid, false otherwise
    */
   private isJWTExpired(token: string | null, bufferMs: number = 0): boolean {
-    if (!token) return true;
-    
-    try {
-      const payload = token.split('.')[1];
-      if (!payload) return true;
-      
-      const decoded = JSON.parse(atob(payload));
-      if (!decoded.exp) return false; // No expiry means it doesn't expire
-      
-      const expirationTime = decoded.exp * 1000;
-      const currentTime = Date.now() + bufferMs;
-      
-      return currentTime >= expirationTime;
-    } catch {
-      return true; // If we can't decode it, consider it expired
-    }
+    const decoded = this.decodeJWT(token);
+    if (!decoded) return true;
+    if (!decoded.exp) return false;
+
+    const expirationTime = decoded.exp * 1000;
+    const currentTime = Date.now() + bufferMs;
+
+    return currentTime >= expirationTime;
   }
 
   /**
@@ -509,46 +473,21 @@ class TokenManager {
    */
   private scheduleTokenRefresh(): void {
     if (!this.memoryStorage?.expiresAt) return;
-    
-    // Clear existing timer
-    if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
-      this.refreshTimer = null;
-    }
-    
-    // Calculate time until refresh (refresh 2 minutes before expiry)
-    const now = Date.now();
-    const refreshTime = this.memoryStorage.expiresAt - (2 * 60 * 1000);
-    const timeUntilRefresh = Math.max(0, refreshTime - now);
-    
-    // Only schedule if refresh time is reasonable (not too soon or too far)
-    const minRefreshTime = 30 * 1000; // 30 seconds minimum
-    const maxRefreshTime = 24 * 60 * 60 * 1000; // 24 hours maximum
-    
-    if (timeUntilRefresh < minRefreshTime || timeUntilRefresh > maxRefreshTime) {
+
+    this.cancelRefreshTimer();
+
+    const timeUntilRefresh = this.calculateRefreshDelay(this.memoryStorage.expiresAt);
+
+    if (!this.isValidRefreshDelay(timeUntilRefresh)) {
       console.log('⏰ TokenManager: Skipping auto-refresh scheduling (invalid timing)');
       return;
     }
-    
+
     if (process.env.NODE_ENV === 'development') {
       console.log(`⏰ TokenManager: Scheduling auto-refresh in ${Math.round(timeUntilRefresh / 1000)} seconds`);
     }
-    
-    this.refreshTimer = setTimeout(async () => {
-      try {
-        // Import the AuthClient dynamically to avoid circular dependencies
-        const { api } = await import('../../api');
-        await api.auth.refreshToken();
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔄 TokenManager: Automatic token refresh completed');
-        }
-      } catch (error) {
-        console.warn('🚨 TokenManager: Automatic token refresh failed:', error);
-        // Clear tokens on refresh failure to force re-authentication
-        this.clearTokens();
-      }
-    }, timeUntilRefresh);
+
+    this.refreshTimer = setTimeout(() => this.executeAutoRefresh(), timeUntilRefresh);
   }
 
   /**
@@ -564,6 +503,17 @@ class TokenManager {
   }
 
   /**
+   * Get token expiry timestamp
+   *
+   * Returns the expiration timestamp of the current access token.
+   *
+   * @returns Expiration timestamp in milliseconds or null if not available
+   */
+  getTokenExpiry(): number | null {
+    return this.memoryStorage?.expiresAt || null;
+  }
+
+  /**
    * Check if token should be refreshed proactively
    *
    * Enterprise feature for proactive token refresh. Returns true if token expires
@@ -572,12 +522,122 @@ class TokenManager {
    * @returns True if proactive refresh recommended, false otherwise
    */
   shouldRefreshProactively(): boolean {
-    if (!this.memoryStorage?.expiresAt) return false;
-    
-    // Check if token expires within 5 minutes
-    const fiveMinutesFromNow = Date.now() + (5 * 60 * 1000);
-    return this.memoryStorage.expiresAt <= fiveMinutesFromNow;
+    return this.needsRefresh();
   }
+
+  /**
+   * Persist token data to localStorage
+   *
+   * @param tokenData - Token data to persist
+   */
+  private persistToLocalStorage(tokenData: TokenData): void {
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, tokenData.accessToken);
+    if (tokenData.refreshToken) {
+      localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, tokenData.refreshToken);
+    }
+  }
+
+  /**
+   * Sync tokens to cookies for server-side authentication
+   *
+   * @param accessToken - Access token to sync
+   * @param refreshToken - Optional refresh token to sync
+   * @param expiresAt - Optional expiration timestamp
+   */
+  private syncTokensToCookies(
+    accessToken: string,
+    refreshToken?: string,
+    expiresAt?: number
+  ): void {
+    const tokenExpiry = expiresAt
+      ? new Date(expiresAt)
+      : new Date(Date.now() + TIME.DAY);
+
+    setCookie(STORAGE_KEYS.ACCESS_TOKEN, accessToken, {
+      expires: tokenExpiry,
+    });
+
+    if (refreshToken) {
+      setCookie(STORAGE_KEYS.REFRESH_TOKEN, refreshToken, {
+        expires: new Date(Date.now() + TOKEN_CONFIG.DEFAULT_REFRESH_TOKEN_TTL_MS),
+      });
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🍪 TokenManager: Setting cookies', {
+        accessToken: STORAGE_KEYS.ACCESS_TOKEN,
+        refreshToken: refreshToken ? STORAGE_KEYS.REFRESH_TOKEN : 'none',
+      });
+    }
+  }
+
+  /**
+   * Decode JWT token payload
+   *
+   * @param token - JWT token to decode
+   * @returns Decoded payload or null if invalid
+   */
+  private decodeJWT(token: string | null): JWTPayload | null {
+    if (!token) return null;
+
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      return JSON.parse(atob(payload)) as JWTPayload;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Cancel existing refresh timer
+   */
+  private cancelRefreshTimer(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  /**
+   * Calculate delay until token refresh
+   *
+   * @param expiresAt - Token expiration timestamp
+   * @returns Delay in milliseconds
+   */
+  private calculateRefreshDelay(expiresAt: number): number {
+    const refreshTime = expiresAt - TOKEN_CONFIG.AUTO_REFRESH_OFFSET_MS;
+    return Math.max(0, refreshTime - Date.now());
+  }
+
+  /**
+   * Validate refresh delay timing
+   *
+   * @param delay - Delay in milliseconds
+   * @returns True if delay is within acceptable range
+   */
+  private isValidRefreshDelay(delay: number): boolean {
+    return delay >= TOKEN_CONFIG.MIN_REFRESH_TIME_MS &&
+           delay <= TOKEN_CONFIG.MAX_REFRESH_TIME_MS;
+  }
+
+  /**
+   * Execute automatic token refresh
+   */
+  private async executeAutoRefresh(): Promise<void> {
+    try {
+      const { api } = await import('../../api');
+      await api.auth.refreshToken();
+
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 TokenManager: Automatic token refresh completed');
+      }
+    } catch (error) {
+      console.warn('🚨 TokenManager: Automatic token refresh failed:', error);
+      this.clearTokens();
+    }
+  }
+
 }
 
 // Singleton instance for global use

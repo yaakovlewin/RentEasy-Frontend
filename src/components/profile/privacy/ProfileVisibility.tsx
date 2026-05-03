@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Eye, EyeOff, Lock, Globe, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useSaveState } from '@/hooks/useSaveState';
 
 interface VisibilitySettings {
   publicProfile: boolean;
@@ -22,7 +23,12 @@ interface VisibilitySettings {
   visibilityLevel: 'everyone' | 'registered' | 'private';
 }
 
-export function ProfileVisibility() {
+interface ProfileVisibilityProps {
+  userId?: string;
+  userRole?: string;
+}
+
+export function ProfileVisibility({ userId, userRole }: ProfileVisibilityProps) {
   const [settings, setSettings] = useState<VisibilitySettings>({
     publicProfile: true,
     showEmail: false,
@@ -31,15 +37,16 @@ export function ProfileVisibility() {
     visibilityLevel: 'registered',
   });
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const { isSaving, saveStatus, handleSave, resetStatus } = useSaveState(async () => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  });
 
   const handleToggle = (key: keyof Omit<VisibilitySettings, 'visibilityLevel'>) => {
     setSettings(prev => ({
       ...prev,
       [key]: !prev[key],
     }));
-    setSaveStatus('idle');
+    resetStatus();
   };
 
   const handleVisibilityLevelChange = (value: string) => {
@@ -47,23 +54,7 @@ export function ProfileVisibility() {
       ...prev,
       visibilityLevel: value as 'everyone' | 'registered' | 'private',
     }));
-    setSaveStatus('idle');
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveStatus('idle');
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (error) {
-      setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
-    }
+    resetStatus();
   };
 
   const visibilityOptions = [

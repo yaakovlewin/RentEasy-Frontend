@@ -18,7 +18,6 @@ import {
   Pool,
   Share,
   Sparkles,
-  Star,
   Users,
   Wifi,
 } from 'lucide-react';
@@ -27,6 +26,8 @@ import { cn } from '@/lib/utils';
 
 import { Button } from './button';
 import { Card, CardContent } from './card';
+import { RatingDisplay } from './RatingDisplay';
+import { PriceDisplay } from './PriceDisplay';
 
 interface PropertyCardProps {
   id: string | number;
@@ -306,9 +307,14 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
             >
               {title}
             </h3>
-            <div className='flex items-center space-x-1 bg-gradient-to-r from-yellow-50 to-orange-50 px-3 py-1.5 rounded-full border border-yellow-200 flex-shrink-0'>
-              <Star className='w-4 h-4 fill-yellow-400 text-yellow-400' />
-              <span className='text-sm font-bold text-gray-900'>{rating}</span>
+            <div className='bg-gradient-to-r from-yellow-50 to-orange-50 px-3 py-1.5 rounded-full border border-yellow-200 flex-shrink-0'>
+              <RatingDisplay
+                rating={rating}
+                size="sm"
+                variant="default"
+                showReviewCount={false}
+                className="space-x-1"
+              />
             </div>
           </div>
 
@@ -368,33 +374,22 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
 
           {/* Pricing and Reviews */}
           <div className='flex items-center justify-between pt-4 border-t border-gray-100/80'>
-            <div className='flex items-center space-x-3'>
-              <div className='flex items-baseline'>
-                <span
-                  className={cn(
-                    'font-bold text-gray-900 tracking-tight',
-                    variant === 'luxury' ? 'text-3xl' : 'text-2xl'
-                  )}
-                >
-                  ${price}
-                </span>
-                <span className='text-gray-600 text-sm ml-1 font-medium'>/night</span>
-              </div>
-              {originalPrice && (
-                <div className='flex flex-col'>
-                  <span className='text-sm text-gray-400 line-through'>${originalPrice}</span>
-                  {discount && (
-                    <span className='text-xs text-green-600 font-semibold'>Save {discount}%</span>
-                  )}
-                </div>
-              )}
-            </div>
+            <PriceDisplay
+              price={price}
+              originalPrice={originalPrice}
+              discount={discount}
+              size={variant === 'luxury' ? 'lg' : 'md'}
+              align="left"
+            />
             <div className='flex flex-col items-end'>
-              <div className='flex items-center text-sm text-gray-500 mb-1'>
-                <Star className='w-3 h-3 text-yellow-400 mr-1' />
-                <span className='font-semibold text-gray-900'>{rating}</span>
-                <span className='ml-1'>({reviews})</span>
-              </div>
+              <RatingDisplay
+                rating={rating}
+                reviews={reviews}
+                size="sm"
+                variant="default"
+                showReviewCount={true}
+                className="text-sm text-gray-500 mb-1"
+              />
               {variant === 'luxury' && (
                 <div className='text-xs text-primary font-medium'>🔥 Trending</div>
               )}

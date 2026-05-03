@@ -65,3 +65,6 @@ pids/
 # Cache directories
 .cache/
 .parcel-cache/
+
+# Stray Windows redirect artifact
+/nul

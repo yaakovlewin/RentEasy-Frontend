@@ -2,19 +2,18 @@
 
 /**
  * @fileoverview PropertyDetailsContent Component
- * 
+ *
  * Enterprise-grade content wrapper that combines all extracted property components
  * with performance optimizations and error boundary integration.
  */
 
-import React, { memo, Suspense } from 'react';
+import React, { memo, Suspense, useMemo } from 'react';
 import { FeatureErrorBoundary } from '@/components/error-boundaries';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { GoogleMap } from '@/components/property/GoogleMap';
 import { SimilarProperties } from '@/components/property/SimilarProperties';
 import { cn } from '@/lib/utils';
 
-// Lazy imports for better performance
+// Feature components
 import { PropertyImageGallery } from './PropertyImageGallery';
 import { PropertyHeader } from './PropertyHeader';
 import { PropertyInfo } from './PropertyInfo';
@@ -23,45 +22,95 @@ import { PropertyAmenities } from './PropertyAmenities';
 import { PropertyReviews } from './PropertyReviews';
 import { PropertyRules } from './PropertyRules';
 import { PropertyBookingCard } from './PropertyBookingCard';
+import { PropertyLocationSection } from './PropertyLocationSection';
 
-import type { 
-  PropertyDetails, 
+// Fallback UI components
+import {
+  ImageGalleryFallback,
+  PropertyInfoFallback,
+  AmenitiesFallback,
+  ReviewsFallback,
+  LocationFallback,
+  BookingFallback,
+  HeaderFallback,
+} from './PropertyDetailsFallbacks';
+
+import type {
+  PropertyDetails,
   GuestSelection,
   BookingFormData,
-  PropertyError 
+  PropertyError,
 } from '../types';
 
-interface PropertyDetailsContentProps {
-  /** Property data */
-  property: PropertyDetails;
-  /** Check-in date */
+// ============================================================================
+// Types & Interfaces
+// ============================================================================
+
+/**
+ * Booking state management interface
+ * Tracks all booking-related form state including dates, guests, and errors
+ */
+interface BookingState {
   checkIn: Date | null;
-  /** Check-out date */
   checkOut: Date | null;
-  /** Guest selection */
   guests: GuestSelection;
-  /** Date selection handler */
+  isLoading?: boolean;
+  error?: PropertyError | null;
+}
+
+/**
+ * Booking event handlers interface
+ * Callbacks for all booking form interactions
+ */
+interface BookingHandlers {
   onDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
-  /** Guest selection handler */
   onGuestsChange: (guests: GuestSelection) => void;
-  /** Booking handler */
   onBooking: (bookingData: BookingFormData) => Promise<void>;
-  /** Share handler */
+  onErrorDismiss?: () => void;
+}
+
+/**
+ * Main component props interface
+ */
+interface PropertyDetailsContentProps {
+  /** Complete property data object */
+  property: PropertyDetails;
+  /** Current booking form state */
+  bookingState: BookingState;
+  /** Booking form event handlers */
+  bookingHandlers: BookingHandlers;
+  /** Share button click handler */
   onShare?: () => void;
-  /** Favorite toggle handler */
+  /** Favorite toggle button handler */
   onToggleFavorite?: () => void;
-  /** Loading states */
-  isBookingLoading?: boolean;
+  /** Loading state for favorite toggle */
   isFavoriteLoading?: boolean;
-  /** Errors */
-  bookingError?: PropertyError | null;
-  /** Error handlers */
-  onBookingErrorDismiss?: () => void;
-  /** Optional CSS classes */
+  /** Additional CSS classes */
   className?: string;
-  /** Show similar properties */
+  /** Whether to display similar properties section */
   showSimilarProperties?: boolean;
 }
+
+// ============================================================================
+// Utility Functions
+// ============================================================================
+
+/**
+ * Transform PropertyDetails to Property format for SimilarProperties component
+ * Ensures all required fields are present with sensible defaults
+ */
+const transformToProperty = (property: PropertyDetails): Record<string, unknown> => ({
+  ...property,
+  id: String(property.id),
+  description: property.description || '',
+  isActive: true,
+  createdAt: property.createdAt || new Date().toISOString(),
+  updatedAt: property.updatedAt || new Date().toISOString(),
+});
+
+// ============================================================================
+// Sub-Components (Memoized Sections)
+// ============================================================================
 
 /**
  * Memoized Image Gallery with Error Boundary
@@ -72,14 +121,10 @@ const ImageGallerySection = memo(function ImageGallerySection({
   property: PropertyDetails;
 }) {
   return (
-    <FeatureErrorBoundary 
-      featureName="Property Image Gallery" 
+    <FeatureErrorBoundary
+      featureName="Property Image Gallery"
       level="medium"
-      fallback={
-        <div className="h-96 lg:h-[500px] bg-gray-100 rounded-xl flex items-center justify-center">
-          <p className="text-gray-500">Images temporarily unavailable</p>
-        </div>
-      }
+      fallback={<ImageGalleryFallback />}
     >
       <PropertyImageGallery
         images={property.images}
@@ -90,6 +135,7 @@ const ImageGallerySection = memo(function ImageGallerySection({
     </FeatureErrorBoundary>
   );
 });
+ImageGallerySection.displayName = 'ImageGallerySection';
 
 /**
  * Memoized Content Sections with Error Boundaries
@@ -102,17 +148,17 @@ const ContentSections = memo(function ContentSections({
   return (
     <div className="lg:col-span-2">
       {/* Property Info Section */}
-      <FeatureErrorBoundary 
-        featureName="Property Info" 
+      <FeatureErrorBoundary
+        featureName="Property Info"
         level="medium"
-        fallback={<div className="border-b border-gray-200 pb-8 mb-8 h-32 bg-gray-50 rounded flex items-center justify-center"><p className="text-gray-500">Property info temporarily unavailable</p></div>}
+        fallback={<PropertyInfoFallback />}
       >
         <PropertyInfo property={property} />
       </FeatureErrorBoundary>
 
       {/* Description Section */}
-      <FeatureErrorBoundary 
-        featureName="Property Description" 
+      <FeatureErrorBoundary
+        featureName="Property Description"
         level="low"
         fallback={null}
       >
@@ -120,21 +166,21 @@ const ContentSections = memo(function ContentSections({
       </FeatureErrorBoundary>
 
       {/* Amenities Section */}
-      <FeatureErrorBoundary 
-        featureName="Property Amenities" 
+      <FeatureErrorBoundary
+        featureName="Property Amenities"
         level="medium"
-        fallback={<div className="border-b border-gray-200 pb-8 mb-8"><h3 className="text-xl font-semibold mb-4">What this place offers</h3><p className="text-gray-500">Amenities list temporarily unavailable</p></div>}
+        fallback={<AmenitiesFallback />}
       >
         <PropertyAmenities amenities={property.amenities || []} />
       </FeatureErrorBoundary>
 
       {/* Reviews Section */}
-      <FeatureErrorBoundary 
-        featureName="Property Reviews" 
+      <FeatureErrorBoundary
+        featureName="Property Reviews"
         level="medium"
-        fallback={<div className="border-b border-gray-200 pb-8 mb-8"><h3 className="text-xl font-semibold mb-4">Reviews</h3><p className="text-gray-500">Reviews temporarily unavailable</p></div>}
+        fallback={<ReviewsFallback />}
       >
-        <PropertyReviews 
+        <PropertyReviews
           reviews={property.reviewsList}
           rating={property.rating}
           totalReviewCount={property.reviews}
@@ -142,8 +188,8 @@ const ContentSections = memo(function ContentSections({
       </FeatureErrorBoundary>
 
       {/* Rules Section */}
-      <FeatureErrorBoundary 
-        featureName="Property Rules" 
+      <FeatureErrorBoundary
+        featureName="Property Rules"
         level="low"
         fallback={null}
       >
@@ -151,122 +197,118 @@ const ContentSections = memo(function ContentSections({
       </FeatureErrorBoundary>
 
       {/* Location Section */}
-      <FeatureErrorBoundary 
-        featureName="Property Location" 
+      <FeatureErrorBoundary
+        featureName="Property Location"
         level="medium"
-        fallback={<div className="border-b border-gray-200 pb-8 mb-8"><h3 className="text-xl font-semibold mb-4">Location</h3><p className="text-gray-500">Map temporarily unavailable</p></div>}
+        fallback={<LocationFallback />}
       >
-        <div className="border-b border-gray-200 pb-8 mb-8">
-          <h3 className="text-xl font-semibold mb-4">Where you'll be</h3>
-          <GoogleMap
-            latitude={property.latitude}
-            longitude={property.longitude}
-            address={property.location}
-            title={property.title}
-            className="h-80"
-          />
-        </div>
+        <PropertyLocationSection
+          latitude={property.latitude}
+          longitude={property.longitude}
+          address={property.location}
+          title={property.title}
+        />
       </FeatureErrorBoundary>
     </div>
   );
 });
+ContentSections.displayName = 'ContentSections';
 
 /**
  * Memoized Booking Section with Error Boundary
  */
 const BookingSection = memo(function BookingSection({
   property,
-  checkIn,
-  checkOut,
-  guests,
-  onDateSelect,
-  onGuestsChange,
-  onBooking,
-  isBookingLoading,
-  bookingError,
-  onBookingErrorDismiss,
+  bookingState,
+  bookingHandlers,
 }: {
   property: PropertyDetails;
-  checkIn: Date | null;
-  checkOut: Date | null;
-  guests: GuestSelection;
-  onDateSelect: (checkIn: Date | null, checkOut: Date | null) => void;
-  onGuestsChange: (guests: GuestSelection) => void;
-  onBooking: (bookingData: BookingFormData) => Promise<void>;
-  isBookingLoading?: boolean;
-  bookingError?: PropertyError | null;
-  onBookingErrorDismiss?: () => void;
+  bookingState: BookingState;
+  bookingHandlers: BookingHandlers;
 }) {
   return (
     <div className="lg:col-span-1">
-      <FeatureErrorBoundary 
-        featureName="Property Booking" 
+      <FeatureErrorBoundary
+        featureName="Property Booking"
         level="high"
         enableRetry={true}
-        fallback={
-          <div className="sticky top-24 p-6 border rounded-lg bg-gray-50 text-center">
-            <p className="text-gray-600 mb-4">Booking form temporarily unavailable</p>
-            <p className="text-sm text-gray-500">Please try refreshing the page or contact support</p>
-          </div>
-        }
+        fallback={<BookingFallback />}
       >
         <PropertyBookingCard
           property={property}
-          checkIn={checkIn}
-          checkOut={checkOut}
-          guests={guests}
-          onDateSelect={onDateSelect}
-          onGuestsChange={onGuestsChange}
-          onBooking={onBooking}
-          isLoading={isBookingLoading}
-          error={bookingError}
-          onErrorDismiss={onBookingErrorDismiss}
+          checkIn={bookingState.checkIn}
+          checkOut={bookingState.checkOut}
+          guests={bookingState.guests}
+          onDateSelect={bookingHandlers.onDateSelect}
+          onGuestsChange={bookingHandlers.onGuestsChange}
+          onBooking={bookingHandlers.onBooking}
+          isLoading={bookingState.isLoading}
+          error={bookingState.error}
+          onErrorDismiss={bookingHandlers.onErrorDismiss}
         />
       </FeatureErrorBoundary>
     </div>
   );
 });
+BookingSection.displayName = 'BookingSection';
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 /**
  * PropertyDetailsContent - Main content wrapper with performance optimizations
- * 
- * Features:
- * - Error boundary protection for all major sections
- * - Performance optimization with React.memo and proper component splitting
- * - Fallback UI for each section based on criticality
- * - Loading states and error handling
- * - Responsive grid layout
- * - Accessibility support
+ *
+ * Enterprise-grade property details layout combining all property information
+ * sections with comprehensive error handling and performance optimizations.
+ *
+ * @features
+ * - Error boundary protection for all major sections with fallback UI
+ * - Memoized sub-components to prevent unnecessary re-renders
+ * - Suspense boundaries for lazy-loaded content
+ * - Responsive grid layout (mobile-first design)
+ * - Optimized prop drilling with grouped handler objects
+ * - Accessible markup and keyboard navigation support
+ *
+ * @performance
+ * - Memoized property transformation for SimilarProperties
+ * - Strategic component splitting to isolate re-render boundaries
+ * - Lazy loading for non-critical sections
+ *
+ * @example
+ * ```tsx
+ * <PropertyDetailsContent
+ *   property={propertyData}
+ *   bookingState={{ checkIn, checkOut, guests, isLoading, error }}
+ *   bookingHandlers={{ onDateSelect, onGuestsChange, onBooking }}
+ *   onShare={handleShare}
+ *   onToggleFavorite={handleFavorite}
+ * />
+ * ```
  */
 export const PropertyDetailsContent = memo(function PropertyDetailsContent({
   property,
-  checkIn,
-  checkOut,
-  guests,
-  onDateSelect,
-  onGuestsChange,
-  onBooking,
+  bookingState,
+  bookingHandlers,
   onShare,
   onToggleFavorite,
-  isBookingLoading = false,
   isFavoriteLoading = false,
-  bookingError,
-  onBookingErrorDismiss,
   className,
   showSimilarProperties = true,
 }: PropertyDetailsContentProps) {
+  // Memoize transformed property to prevent unnecessary recalculations
+  const transformedProperty = useMemo(
+    () => transformToProperty(property),
+    [property.id, property.description, property.createdAt, property.updatedAt]
+  );
+
   return (
     <div className={cn('max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8', className)}>
       {/* Property Header */}
-      <FeatureErrorBoundary 
-        featureName="Property Header" 
+      <FeatureErrorBoundary
+        featureName="Property Header"
         level="high"
-        fallback={
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold mb-2">{property.title}</h1>
-            <div className="text-gray-600">{property.location}</div>
-          </div>
-        }
+        fallback={<HeaderFallback title={property.title} location={property.location} />}
       >
         <PropertyHeader
           property={property}
@@ -287,34 +329,28 @@ export const PropertyDetailsContent = memo(function PropertyDetailsContent({
         {/* Booking Section */}
         <BookingSection
           property={property}
-          checkIn={checkIn}
-          checkOut={checkOut}
-          guests={guests}
-          onDateSelect={onDateSelect}
-          onGuestsChange={onGuestsChange}
-          onBooking={onBooking}
-          isBookingLoading={isBookingLoading}
-          bookingError={bookingError}
-          onBookingErrorDismiss={onBookingErrorDismiss}
+          bookingState={bookingState}
+          bookingHandlers={bookingHandlers}
         />
       </div>
 
       {/* Similar Properties */}
       {showSimilarProperties && (
-        <FeatureErrorBoundary 
-          featureName="Similar Properties" 
+        <FeatureErrorBoundary
+          featureName="Similar Properties"
           level="low"
           fallback={null}
         >
-          <Suspense fallback={
-            <div className="mt-12 text-center">
-              <LoadingSpinner size="lg" />
-              <p className="mt-2 text-gray-600">Loading similar properties...</p>
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div className="mt-12 text-center">
+                <LoadingSpinner size="lg" />
+                <p className="mt-2 text-gray-600">Loading similar properties...</p>
+              </div>
+            }
+          >
             <SimilarProperties
-              currentPropertyId={property.id}
-              location={property.location}
+              currentProperty={transformedProperty as never}
               className="mt-12"
             />
           </Suspense>
@@ -325,5 +361,8 @@ export const PropertyDetailsContent = memo(function PropertyDetailsContent({
 });
 
 PropertyDetailsContent.displayName = 'PropertyDetailsContent';
+
+// Export types for consumers
+export type { BookingState, BookingHandlers };
 
 export default PropertyDetailsContent;

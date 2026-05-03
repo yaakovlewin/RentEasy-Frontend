@@ -26,6 +26,7 @@ import { PropertyStats } from '@/components/profile/properties/PropertyStats';
 import { PropertyQuickActions } from '@/components/profile/properties/PropertyQuickActions';
 import { PropertyAnalytics } from '@/components/profile/properties/PropertyAnalytics';
 import { PropertyOnboarding } from '@/components/profile/properties/PropertyOnboarding';
+import { CoreSkeleton } from '@/components/ui/loading/skeletons';
 
 // Utils
 import { validateServerToken } from '@/lib/auth/server-utils';
@@ -194,7 +195,7 @@ export default async function MyPropertiesPage() {
         </div>
         
         <Suspense fallback={<PropertiesListSkeleton />}>
-          <PropertiesList userId={user.userId} />
+          <PropertiesList userId={user.userId} userRole={user.role} />
         </Suspense>
       </div>
 
@@ -263,11 +264,11 @@ function PropertyStatsSkeleton() {
         <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-gray-200 rounded animate-pulse" />
+              <CoreSkeleton variant="rounded" width="w-8" height="h-8" shimmer={true} />
             </div>
             <div className="ml-4 flex-1">
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-20 mb-1" />
-              <div className="h-6 bg-gray-200 rounded animate-pulse w-12" />
+              <CoreSkeleton height="h-4" width="w-20" variant="rounded" shimmer={true} className="mb-1" />
+              <CoreSkeleton height="h-6" width="w-12" variant="rounded" shimmer={true} />
             </div>
           </div>
         </div>
@@ -279,10 +280,10 @@ function PropertyStatsSkeleton() {
 function PropertyAnalyticsSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="h-32 bg-gray-200 rounded animate-pulse" />
+      <CoreSkeleton height="h-32" width="w-full" variant="rounded" shimmer={true} />
       <div className="grid grid-cols-2 gap-4">
-        <div className="h-4 bg-gray-200 rounded animate-pulse" />
-        <div className="h-4 bg-gray-200 rounded animate-pulse" />
+        <CoreSkeleton height="h-4" width="w-full" variant="rounded" shimmer={true} />
+        <CoreSkeleton height="h-4" width="w-full" variant="rounded" shimmer={true} />
       </div>
     </div>
   );
@@ -293,8 +294,8 @@ function EarningsSummarySkeleton() {
     <div className="space-y-4">
       {[...Array(3)].map((_, i) => (
         <div key={i} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-20" />
-          <div className="h-5 bg-gray-200 rounded animate-pulse w-16" />
+          <CoreSkeleton height="h-4" width="w-20" variant="rounded" shimmer={true} />
+          <CoreSkeleton height="h-5" width="w-16" variant="rounded" shimmer={true} />
         </div>
       ))}
     </div>
@@ -307,20 +308,20 @@ function PropertiesListSkeleton() {
       {[...Array(3)].map((_, i) => (
         <div key={i} className="p-6">
           <div className="flex items-start space-x-4">
-            <div className="w-32 h-24 bg-gray-200 rounded-lg animate-pulse" />
+            <CoreSkeleton variant="rounded" width="w-32" height="h-24" shimmer={true} />
             <div className="flex-1 space-y-2">
-              <div className="h-5 bg-gray-200 rounded animate-pulse w-64" />
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-40" />
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
+              <CoreSkeleton height="h-5" width="w-64" variant="rounded" shimmer={true} />
+              <CoreSkeleton height="h-4" width="w-40" variant="rounded" shimmer={true} />
+              <CoreSkeleton height="h-4" width="w-32" variant="rounded" shimmer={true} />
               <div className="flex space-x-4 mt-3">
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-20" />
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-24" />
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-16" />
+                <CoreSkeleton height="h-4" width="w-20" variant="rounded" shimmer={true} />
+                <CoreSkeleton height="h-4" width="w-24" variant="rounded" shimmer={true} />
+                <CoreSkeleton height="h-4" width="w-16" variant="rounded" shimmer={true} />
               </div>
             </div>
             <div className="text-right space-y-2">
-              <div className="h-4 bg-gray-200 rounded animate-pulse w-16" />
-              <div className="h-8 bg-gray-200 rounded animate-pulse w-20" />
+              <CoreSkeleton height="h-4" width="w-16" variant="rounded" shimmer={true} />
+              <CoreSkeleton height="h-8" width="w-20" variant="rounded" shimmer={true} />
             </div>
           </div>
         </div>
@@ -332,11 +333,11 @@ function PropertiesListSkeleton() {
 function PropertyOnboardingSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="h-6 bg-gray-200 rounded animate-pulse w-48" />
-      <div className="h-4 bg-gray-200 rounded animate-pulse w-full" />
+      <CoreSkeleton height="h-6" width="w-48" variant="rounded" shimmer={true} />
+      <CoreSkeleton height="h-4" width="w-full" variant="rounded" shimmer={true} />
       <div className="flex space-x-2">
-        <div className="h-8 bg-gray-200 rounded animate-pulse w-24" />
-        <div className="h-8 bg-gray-200 rounded animate-pulse w-20" />
+        <CoreSkeleton height="h-8" width="w-24" variant="rounded" shimmer={true} />
+        <CoreSkeleton height="h-8" width="w-20" variant="rounded" shimmer={true} />
       </div>
     </div>
   );

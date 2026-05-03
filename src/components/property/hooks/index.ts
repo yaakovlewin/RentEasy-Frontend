@@ -1,18 +1,18 @@
 /**
  * @fileoverview Property Hooks - Clean Exports
- * 
+ *
  * Enterprise-grade property hook exports providing comprehensive
  * functionality for property details, booking, gallery, and UI state management.
  */
 
 // Core property hooks
-export { 
+export {
   usePropertyDetails,
   type UsePropertyDetailsOptions,
-  type UsePropertyDetailsReturn 
+  type UsePropertyDetailsReturn
 } from './usePropertyDetails';
 
-export { 
+export {
   useBookingCalculations,
   type UseBookingCalculationsOptions,
   type UseBookingCalculationsReturn,
@@ -20,19 +20,24 @@ export {
   type BookingValidation
 } from './useBookingCalculations';
 
-export { 
+export {
   useImageGallery,
   type UseImageGalleryOptions,
   type UseImageGalleryReturn
 } from './useImageGallery';
 
-export { 
+export {
   useContentVisibility,
   useSectionVisibility,
   type UseContentVisibilityOptions,
   type UseContentVisibilityReturn,
   type SectionVisibility
 } from './useContentVisibility';
+
+export {
+  useBookingHandler,
+  default as useBookingHandlerDefault
+} from './useBookingHandler';
 
 // Convenience re-exports from types
 export type {

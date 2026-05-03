@@ -30,7 +30,7 @@ export function getTotalOccupants(guests: SearchData['guests']): number {
 }
 
 /**
- * Formats guest text for display
+ * Formats guest text for display with detailed breakdown
  * @param guests - Guest object
  * @returns Formatted guest string
  */
@@ -42,10 +42,20 @@ export function formatGuestText(guests: SearchData['guests']): string {
     return 'Add guests';
   }
 
-  parts.push(pluralize(total, 'guest'));
-
-  if (guests.infants > 0) {
-    parts.push(pluralize(guests.infants, 'infant'));
+  // Show detailed breakdown when there are different guest types
+  if (guests.adults > 0 && (guests.children > 0 || guests.infants > 0)) {
+    if (guests.adults > 0) {
+      parts.push(pluralize(guests.adults, 'adult'));
+    }
+    if (guests.children > 0) {
+      parts.push(pluralize(guests.children, 'child', 'children'));
+    }
+    if (guests.infants > 0) {
+      parts.push(pluralize(guests.infants, 'infant'));
+    }
+  } else {
+    // Simple format when only one guest type
+    parts.push(pluralize(total, 'guest'));
   }
 
   return parts.join(', ');

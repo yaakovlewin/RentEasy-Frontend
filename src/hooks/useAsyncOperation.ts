@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef } from 'react';
 
 import { BaseApiError } from '@/lib/api';
+import { Result, Option } from '@/lib/api/functional';
 
 interface UseAsyncOperationOptions {
   retryAttempts?: number;
@@ -36,88 +37,85 @@ export function useAsyncOperation<T>(options: UseAsyncOperationOptions = {}) {
     async (operation: () => Promise<T>, retryCount: number = 0): Promise<T | null> => {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
-      try {
-        const result = await operation();
-        setState({ data: result, loading: false, error: null });
-        onSuccessRef.current?.(result);
-        return result;
-      } catch (error: any) {
-        try {
-          if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.error) {
-            console.error('Async operation failed:', error);
-          }
-        } catch (e) {
-          // Silently fail if console is not available
-        }
-        // Handle structured API errors
-        const getErrorMessage = (error: any): string => {
-          if (error instanceof BaseApiError) {
-            return error.message;
-          }
-          if (error?.response?.data?.message) {
-            return error.response.data.message;
-          }
-          if (error?.message) {
-            return error.message;
-          }
-          return 'An unexpected error occurred';
-        };
+      const result = await Result.fromPromise(operation());
 
-        const shouldRetryError = (error: any, retryCount: number): boolean => {
-          if (retryCount >= retryAttempts) return false;
-          
-          const status = error?.response?.status || error?.statusCode;
-          return (
-            status >= 500 || // Server errors
-            status === 0 || // Network errors
-            !status // Unknown errors (likely network)
-          );
-        };
-
-        // Check if we should retry (but not for rate limiting errors)
-        const isRateLimit = error.response?.status === 429;
-        const canRetry = shouldRetryError(error, retryCount) && !isRateLimit;
-
-        if (canRetry && retryCount < retryAttempts) {
-          try {
-            if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.log) {
-              console.log(`Retrying operation... Attempt ${retryCount + 1}/${retryAttempts}`);
+      return Result.match({
+        ok: (data) => {
+          setState({ data, loading: false, error: null });
+          onSuccessRef.current?.(data);
+          return data;
+        },
+        err: (error: any) => {
+          Result.tryCatch(() => {
+            if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.error) {
+              console.error('Async operation failed:', error);
             }
-          } catch (e) {
-            // Silently fail if console is not available
-          }
+          })();
 
-          // Exponential backoff with jitter
-          const baseDelay = retryDelay * Math.pow(2, retryCount);
-          const jitter = Math.random() * 1000; // Add up to 1 second of random jitter
-          const delay = Math.min(baseDelay + jitter, 10000); // Cap at 10 seconds
-
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return execute(operation, retryCount + 1);
-        }
-
-        // Special handling for rate limiting
-        if (isRateLimit) {
-          try {
-            if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.warn) {
-              console.warn('Rate limit reached. Please try again later.');
+          const getErrorMessage = (error: any): string => {
+            if (error instanceof BaseApiError) {
+              return error.message;
             }
-          } catch (e) {
-            // Silently fail if console is not available
+            return Option.getOrElse('An unexpected error occurred')(
+              Option.any([
+                Option.fromNullable(error?.response?.data?.message),
+                Option.fromNullable(error?.message),
+              ])
+            );
+          };
+
+          const shouldRetryError = (error: any, retryCount: number): boolean => {
+            if (retryCount >= retryAttempts) return false;
+
+            const statusOption = Option.any([
+              Option.fromNullable(error?.response?.status),
+              Option.fromNullable(error?.statusCode),
+            ]);
+
+            return Option.match({
+              some: (status) => status >= 500 || status === 0,
+              none: () => true,
+            })(statusOption);
+          };
+
+          const isRateLimit = error.response?.status === 429;
+          const canRetry = shouldRetryError(error, retryCount) && !isRateLimit;
+
+          if (canRetry && retryCount < retryAttempts) {
+            Result.tryCatch(() => {
+              if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.log) {
+                console.log(`Retrying operation... Attempt ${retryCount + 1}/${retryAttempts}`);
+              }
+            })();
+
+            const baseDelay = retryDelay * Math.pow(2, retryCount);
+            const jitter = Math.random() * 1000;
+            const delay = Math.min(baseDelay + jitter, 10000);
+
+            return new Promise(resolve => setTimeout(() => {
+              resolve(execute(operation, retryCount + 1));
+            }, delay));
           }
-        }
 
-        // Set error state
-        const errorMessage = getErrorMessage(error);
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: errorMessage,
-        }));
+          if (isRateLimit) {
+            Result.tryCatch(() => {
+              if (typeof window !== 'undefined' && typeof console !== 'undefined' && console.warn) {
+                console.warn('Rate limit reached. Please try again later.');
+              }
+            })();
+          }
 
-        onErrorRef.current?.(error);
-        return null;
-      }
+          const errorMessage = getErrorMessage(error);
+          setState(prev => ({
+            ...prev,
+            loading: false,
+            error: errorMessage,
+          }));
+
+          onErrorRef.current?.(error);
+          return null;
+        },
+      })(result);
     },
     [retryAttempts, retryDelay]
   );

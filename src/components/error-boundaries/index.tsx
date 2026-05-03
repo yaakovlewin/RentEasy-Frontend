@@ -13,6 +13,8 @@ export { RouteErrorBoundary } from './RouteErrorBoundary';
 export { ApiErrorBoundary } from './ApiErrorBoundary';
 export { AsyncComponentBoundary } from './AsyncComponentBoundary';
 export { FeatureErrorBoundary } from './FeatureErrorBoundary';
+export { default as BaseErrorPage } from './BaseErrorPage';
+export type { BaseErrorPageProps, ErrorAction } from './BaseErrorPage';
 
 // Re-export the base error boundary components
 export {

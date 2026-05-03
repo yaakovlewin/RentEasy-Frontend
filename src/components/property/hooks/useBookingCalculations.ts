@@ -330,7 +330,7 @@ export function useBookingCalculations(
         errors: ['Calculation error occurred'],
       };
     }
-  }, [property, checkIn, checkOut, guests, config]);
+  }, [property, checkIn, checkOut, config]);
   
   /**
    * Memoized validation results

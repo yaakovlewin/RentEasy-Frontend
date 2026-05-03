@@ -5,6 +5,7 @@ export { useClickOutside, useOnClickOutside } from './useClickOutside';
 export { useDateSelection } from './useDateSelection';
 export { useGuestCounter } from './useGuestCounter';
 export { useKeyboardNavigation } from './useKeyboardNavigation';
+export { useDropdownState } from './useDropdownState';
 
 // Performance-optimized hooks
 export {

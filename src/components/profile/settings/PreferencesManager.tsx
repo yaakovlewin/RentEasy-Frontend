@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -12,13 +11,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Globe, DollarSign, Clock, Calendar, Ruler } from 'lucide-react';
+import { useSaveState } from '@/hooks/useSaveState';
+import { SettingsCard } from '@/components/profile/SettingsCard';
 
 interface PreferencesManagerProps {
   userId: string;
 }
 
 export function PreferencesManager({ userId }: PreferencesManagerProps) {
-  const [isSaving, setIsSaving] = useState(false);
   const [preferences, setPreferences] = useState({
     language: 'en',
     currency: 'USD',
@@ -27,27 +27,22 @@ export function PreferencesManager({ userId }: PreferencesManagerProps) {
     measurementUnit: 'metric',
   });
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 1000);
-  };
+  const { isSaving, saveStatus, handleSave } = useSaveState(async () => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  });
 
   const handlePreferenceChange = (field: string, value: string) => {
     setPreferences((prev) => ({ ...prev, [field]: value }));
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Globe className="h-5 w-5" />
-          Regional Preferences
-        </CardTitle>
-        <CardDescription>Customize your regional and display preferences</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <SettingsCard>
+      <SettingsCard.Header
+        title="Regional Preferences"
+        description="Customize your regional and display preferences"
+        icon={Globe}
+      />
+      <SettingsCard.Content>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-2">
             <Label htmlFor="language" className="flex items-center gap-2">
@@ -151,13 +146,12 @@ export function PreferencesManager({ userId }: PreferencesManagerProps) {
             </Select>
           </div>
         </div>
-
-        <div className="pt-4 border-t">
-          <Button onClick={handleSave} disabled={isSaving} className="w-full md:w-auto">
-            {isSaving ? 'Saving Preferences...' : 'Save Preferences'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </SettingsCard.Content>
+      <SettingsCard.Actions
+        onSave={handleSave}
+        isSaving={isSaving}
+        saveStatus={saveStatus}
+      />
+    </SettingsCard>
   );
 }

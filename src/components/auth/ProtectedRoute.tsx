@@ -1,11 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
-
+import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthHydration } from '@/hooks/useClientHydration';
 
@@ -14,6 +12,12 @@ interface ProtectedRouteProps {
   fallback?: React.ReactNode;
   redirectTo?: string;
 }
+
+const DefaultLoadingFallback = () => (
+  <div className='min-h-screen flex items-center justify-center'>
+    <LoadingSpinner size='lg' />
+  </div>
+);
 
 export function ProtectedRoute({
   children,
@@ -24,39 +28,30 @@ export function ProtectedRoute({
   const { isReady: isHydrationReady } = useAuthHydration();
   const router = useRouter();
 
+  const shouldRedirect = useMemo(
+    () => isHydrationReady && !isLoading && !isAuthenticated,
+    [isHydrationReady, isLoading, isAuthenticated]
+  );
+
   useEffect(() => {
-    // Only redirect after hydration is complete to prevent server/client conflicts
-    if (isHydrationReady && !isLoading && !isAuthenticated) {
+    if (shouldRedirect) {
       const currentPath = window.location.pathname;
       const redirectUrl = `${redirectTo}?redirect=${encodeURIComponent(currentPath)}`;
       router.push(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, isHydrationReady, redirectTo, router]);
+  }, [shouldRedirect, redirectTo, router]);
 
-  // Show loading state while auth is initializing or hydration is coordinating
   if (isLoading || !isHydrationReady) {
-    return (
-      fallback || (
-        <div className='min-h-screen flex items-center justify-center'>
-          <LoadingSpinner size='lg' />
-        </div>
-      )
-    );
+    return fallback || <DefaultLoadingFallback />;
   }
 
-  // At this point, hydration is complete and auth state is stable
   if (!isAuthenticated) {
-    return fallback || (
-      <div className='min-h-screen flex items-center justify-center'>
-        <LoadingSpinner size='lg' />
-      </div>
-    );
+    return fallback || <DefaultLoadingFallback />;
   }
 
   return <>{children}</>;
 }
 
-// Role-based protection
 interface RoleProtectedRouteProps extends ProtectedRouteProps {
   allowedRoles: string[];
 }
@@ -68,31 +63,34 @@ export function RoleProtectedRoute({
   redirectTo = '/dashboard',
 }: RoleProtectedRouteProps) {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { isReady: isHydrationReady } = useAuthHydration();
   const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user) {
-      if (!allowedRoles.includes(user.role)) {
-        router.push(redirectTo);
-      }
-    }
-  }, [isAuthenticated, isLoading, user, allowedRoles, redirectTo, router]);
+  const hasAccess = useMemo(
+    () => user && allowedRoles.includes(user.role),
+    [user, allowedRoles]
+  );
 
-  if (isLoading) {
-    return (
-      fallback || (
-        <div className='min-h-screen flex items-center justify-center'>
-          <LoadingSpinner size='lg' />
-        </div>
-      )
-    );
+  const shouldRedirect = useMemo(
+    () => isHydrationReady && !isLoading && isAuthenticated && user && !hasAccess,
+    [isHydrationReady, isLoading, isAuthenticated, user, hasAccess]
+  );
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      router.push(redirectTo);
+    }
+  }, [shouldRedirect, redirectTo, router]);
+
+  if (isLoading || !isHydrationReady) {
+    return fallback || <DefaultLoadingFallback />;
   }
 
   if (!isAuthenticated) {
     return null;
   }
 
-  if (user && !allowedRoles.includes(user.role)) {
+  if (!hasAccess) {
     return fallback || null;
   }
 

@@ -41,21 +41,24 @@ This component system provides **28+ UI components** organized into categories:
 ## 🚀 Quick Start
 
 ```typescript
-import { 
-  Button, 
-  Input, 
-  Card, 
-  CardContent,
+// Direct imports (required pattern)
+import { Button, type ButtonProps } from '@/components/ui/button';
+import { Input, type InputProps } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogTrigger
+} from '@/components/ui/dialog';
+import {
   Form,
   FormField,
   FormItem,
   FormLabel,
   FormControl
-} from '@/components/ui';
+} from '@/components/ui/form';
 
 // Basic usage
 <Button variant="primary" size="lg">Click me</Button>
@@ -222,9 +225,10 @@ Some components support `asChild` for flexible composition:
 ## 📊 Performance
 
 ### **Bundle Size**
-- **Tree-shakeable** - Only import what you use
-- **Individual imports** supported: `import { Button } from '@/components/ui/button'`
+- **Tree-shakeable** - Only import what you use via direct imports
+- **Direct imports required**: `import { Button } from '@/components/ui/button'`
 - **Code splitting** - Components lazy-loaded when possible
+- **Next.js 15 optimized** - Direct imports enable better tree-shaking
 
 ### **Runtime Performance**
 - **React.forwardRef** for proper ref handling
@@ -292,7 +296,7 @@ Some components support `asChild` for flexible composition:
 - ✅ **Comprehensive Testing** with accessibility validation
 
 ### **🚀 Developer Experience**
-- ✅ **Clean Import System** - Single import for all components
+- ✅ **Direct Import Pattern** - Explicit imports for optimal performance
 - ✅ **Consistent API Patterns** - Predictable prop interfaces
 - ✅ **Excellent Documentation** - JSDoc and type definitions
 - ✅ **Modern Tooling** - CVA, Radix UI, Tailwind CSS integration

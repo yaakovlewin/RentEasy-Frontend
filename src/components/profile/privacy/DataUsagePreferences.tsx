@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Database, Download, Trash2, Shield, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
+import { Database, Download, Trash2, Shield, ExternalLink } from 'lucide-react';
+import { useSaveState } from '@/hooks/useSaveState';
+import { SettingsCard } from '@/components/profile/SettingsCard';
 
 interface DataPreferences {
   analytics: boolean;
@@ -14,7 +15,11 @@ interface DataPreferences {
   cookieConsent: boolean;
 }
 
-export function DataUsagePreferences() {
+interface DataUsagePreferencesProps {
+  userId?: string;
+}
+
+export function DataUsagePreferences({ userId }: DataUsagePreferencesProps) {
   const [preferences, setPreferences] = useState<DataPreferences>({
     analytics: true,
     personalization: true,
@@ -22,32 +27,17 @@ export function DataUsagePreferences() {
     cookieConsent: true,
   });
 
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [isDownloading, setIsDownloading] = useState(false);
+
+  const { isSaving, saveStatus, handleSave } = useSaveState(async () => {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  });
 
   const handleToggle = (key: keyof DataPreferences) => {
     setPreferences(prev => ({
       ...prev,
       [key]: !prev[key],
     }));
-    setSaveStatus('idle');
-  };
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    setSaveStatus('idle');
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), 3000);
-    } catch (error) {
-      setSaveStatus('error');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const handleDownloadData = async () => {
@@ -96,17 +86,13 @@ export function DataUsagePreferences() {
   ];
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-600" />
-          <CardTitle>Data Usage & Privacy</CardTitle>
-        </div>
-        <CardDescription>
-          Manage how we collect and use your data in compliance with GDPR and privacy regulations
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+    <SettingsCard>
+      <SettingsCard.Header
+        title="Data Usage & Privacy"
+        description="Manage how we collect and use your data in compliance with GDPR and privacy regulations"
+        icon={Shield}
+      />
+      <SettingsCard.Content>
         <div className="space-y-4">
           <h4 className="text-sm font-medium text-gray-900">Data Collection Preferences</h4>
           {dataOptions.map((option) => {
@@ -139,30 +125,6 @@ export function DataUsagePreferences() {
               </div>
             );
           })}
-        </div>
-
-        <div className="flex items-center gap-3 pt-4 border-t">
-          <Button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="min-w-[120px]"
-          >
-            {isSaving ? 'Saving...' : 'Save Preferences'}
-          </Button>
-
-          {saveStatus === 'success' && (
-            <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle2 className="h-4 w-4" />
-              <span className="text-sm font-medium">Preferences saved</span>
-            </div>
-          )}
-
-          {saveStatus === 'error' && (
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">Failed to save</span>
-            </div>
-          )}
         </div>
 
         <div className="pt-6 border-t space-y-4">
@@ -264,7 +226,14 @@ export function DataUsagePreferences() {
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </SettingsCard.Content>
+      <SettingsCard.Actions
+        onSave={handleSave}
+        isSaving={isSaving}
+        saveStatus={saveStatus}
+        saveButtonText="Save Preferences"
+        successMessage="Preferences saved"
+      />
+    </SettingsCard>
   );
 }

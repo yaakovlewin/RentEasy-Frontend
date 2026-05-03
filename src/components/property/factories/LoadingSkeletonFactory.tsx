@@ -1,121 +1,218 @@
 /**
  * @fileoverview Loading Skeleton Factory
- * 
- * Enterprise-grade loading skeleton factory that eliminates code duplication across
- * loading states by providing a centralized, configurable skeleton system.
- * 
- * Follows Netflix and Airbnb patterns for consistent loading experiences.
+ *
+ * Enterprise-grade loading skeleton system following FP and SOLID principles.
+ * Eliminates code duplication through pure function composition.
  */
 
 import React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * Base skeleton component configuration
+ * Constants
  */
+const SKELETON_DEFAULTS = {
+  ANIMATION_ENABLED: true,
+  ROUNDED: 'md' as const,
+  GRID_GAP: 'md' as const,
+  GRID_COLUMNS: 3 as const,
+  PROPERTY_GRID_COUNT: 6,
+} as const;
+
+const HEIGHT = {
+  IMAGE_DEFAULT: 'h-48',
+  IMAGE_COMPACT: 'h-32',
+  IMAGE_LIST: 'h-32',
+  IMAGE_HERO: 'h-96',
+  IMAGE_THUMB: 'h-24',
+  TEXT_SMALL: 'h-4',
+  TEXT_MEDIUM: 'h-5',
+  BUTTON: 'h-12',
+} as const;
+
+const WIDTH = {
+  FULL: 'w-full',
+  THREE_QUARTERS: 'w-3/4',
+  TWO_THIRDS: 'w-2/3',
+  HALF: 'w-1/2',
+  THIRD: 'w-1/3',
+  QUARTER: 'w-1/4',
+  IMAGE_LIST: 'w-32',
+  SMALL: 'w-16',
+  MEDIUM: 'w-20',
+  ICON: 'w-4',
+  RATING: 'w-12',
+} as const;
+
+/**
+ * Type definitions
+ */
+type RoundedSize = 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+type GapSize = 'sm' | 'md' | 'lg';
+type GridColumns = 1 | 2 | 3 | 4 | 5 | 6;
+type TextWidth = 'full' | '3/4' | '1/2' | '1/3' | '1/4' | '2/3';
+type PropertyVariant = 'default' | 'compact' | 'list';
+
 interface SkeletonConfig {
   className?: string;
   animate?: boolean;
-  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+  rounded?: RoundedSize;
   'data-testid'?: string;
 }
 
-/**
- * Skeleton grid configuration
- */
 interface SkeletonGridConfig extends SkeletonConfig {
-  columns: 1 | 2 | 3 | 4 | 5 | 6;
+  columns: GridColumns;
   rows: number;
-  gap?: 'sm' | 'md' | 'lg';
-  responsive?: {
-    sm?: number;
-    md?: number;
-    lg?: number;
-  };
+  gap?: GapSize;
 }
 
-/**
- * Property card skeleton configuration
- */
 interface PropertySkeletonConfig extends SkeletonConfig {
-  variant?: 'default' | 'compact' | 'list';
+  variant?: PropertyVariant;
   showImage?: boolean;
   showDetails?: boolean;
   showActions?: boolean;
 }
 
-/**
- * Text skeleton configuration
- */
 interface TextSkeletonConfig extends SkeletonConfig {
   lines: number;
-  widths?: Array<'full' | '3/4' | '1/2' | '1/3' | '1/4' | '2/3'>;
+  widths?: TextWidth[];
+}
+
+interface PropertyGridConfig {
+  count?: number;
+  variant?: PropertyVariant;
+  columns?: GridColumns;
+  gap?: GapSize;
+  className?: string;
+  'data-testid'?: string;
+}
+
+interface TextBlockConfig {
+  lines?: number;
+  widths?: TextWidth[];
+  className?: string;
+  'data-testid'?: string;
+}
+
+interface DetailPageConfig {
+  showImage?: boolean;
+  showGallery?: boolean;
+  showDescription?: boolean;
+  showAmenities?: boolean;
+  className?: string;
+  'data-testid'?: string;
 }
 
 /**
- * Base Skeleton Component
+ * Type-to-class mappings (pure data structures)
  */
-const BaseSkeleton: React.FC<SkeletonConfig> = ({
-  className,
-  animate = true,
-  rounded = 'md',
-  'data-testid': testId,
-}) => {
-  const roundedClasses = {
-    none: 'rounded-none',
-    sm: 'rounded-sm',
-    md: 'rounded-md',
-    lg: 'rounded-lg',
-    xl: 'rounded-xl',
-    full: 'rounded-full',
-  };
+const ROUNDED_CLASSES: Record<RoundedSize, string> = {
+  none: 'rounded-none',
+  sm: 'rounded-sm',
+  md: 'rounded-md',
+  lg: 'rounded-lg',
+  xl: 'rounded-xl',
+  full: 'rounded-full',
+};
 
-  return (
-    <div
-      className={cn(
-        'bg-gray-200',
-        animate && 'animate-pulse',
-        roundedClasses[rounded],
-        className
-      )}
-      data-testid={testId}
-      aria-label="Loading..."
-      role="status"
-    />
-  );
+const GAP_CLASSES: Record<GapSize, string> = {
+  sm: 'gap-3',
+  md: 'gap-6',
+  lg: 'gap-8',
+};
+
+const GRID_COL_CLASSES: Record<GridColumns, string> = {
+  1: 'grid-cols-1',
+  2: 'grid-cols-1 sm:grid-cols-2',
+  3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
+  5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
+  6: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6',
+};
+
+const TEXT_WIDTH_CLASSES: Record<TextWidth, string> = {
+  full: WIDTH.FULL,
+  '3/4': WIDTH.THREE_QUARTERS,
+  '2/3': WIDTH.TWO_THIRDS,
+  '1/2': WIDTH.HALF,
+  '1/3': WIDTH.THIRD,
+  '1/4': WIDTH.QUARTER,
+};
+
+const PROPERTY_VARIANT_CLASSES: Record<PropertyVariant, string> = {
+  default: 'space-y-4',
+  compact: 'space-y-2',
+  list: 'flex space-x-4 space-y-0',
+};
+
+const PROPERTY_IMAGE_CLASSES: Record<PropertyVariant, string> = {
+  default: `${WIDTH.FULL} ${HEIGHT.IMAGE_DEFAULT}`,
+  compact: `${WIDTH.FULL} ${HEIGHT.IMAGE_COMPACT}`,
+  list: `${WIDTH.IMAGE_LIST} ${HEIGHT.IMAGE_LIST} flex-shrink-0`,
 };
 
 /**
- * Text Skeleton Component
+ * Pure utility functions
+ */
+const generateArray = (length: number): number[] =>
+  Array.from({ length }, (_, i) => i);
+
+const getDefaultTextWidths = (lines: number): TextWidth[] => {
+  const pattern: TextWidth[] = ['full', '3/4', '1/2', '2/3'];
+  return generateArray(lines).map(i => pattern[i % pattern.length] as TextWidth);
+};
+
+const buildTestId = (base: string | undefined, suffix: string): string | undefined =>
+  base ? `${base}-${suffix}` : undefined;
+
+const buildAriaProps = () => ({
+  'aria-busy': 'true' as const,
+  'aria-live': 'polite' as const,
+  role: 'status' as const,
+});
+
+/**
+ * Base Skeleton Component (pure presentational component)
+ */
+const BaseSkeleton: React.FC<SkeletonConfig> = ({
+  className,
+  animate = SKELETON_DEFAULTS.ANIMATION_ENABLED,
+  rounded = SKELETON_DEFAULTS.ROUNDED,
+  'data-testid': testId,
+}) => (
+  <div
+    className={cn(
+      'bg-gray-200',
+      animate && 'animate-pulse',
+      ROUNDED_CLASSES[rounded],
+      className
+    )}
+    data-testid={testId}
+    {...buildAriaProps()}
+    aria-label="Loading content"
+  />
+);
+
+/**
+ * Text Skeleton Component (functional composition)
  */
 const TextSkeleton: React.FC<TextSkeletonConfig> = ({
   lines,
   widths,
   className,
-  animate = true,
-  ...props
+  animate = SKELETON_DEFAULTS.ANIMATION_ENABLED,
+  'data-testid': testId,
 }) => {
-  const defaultWidths = ['full', '3/4', '1/2', '2/3'];
-  const lineWidths = widths || Array(lines).fill(null).map((_, i) => 
-    defaultWidths[i % defaultWidths.length]
-  );
-
-  const widthClasses = {
-    full: 'w-full',
-    '3/4': 'w-3/4',
-    '2/3': 'w-2/3',
-    '1/2': 'w-1/2',
-    '1/3': 'w-1/3',
-    '1/4': 'w-1/4',
-  };
+  const lineWidths = widths ?? getDefaultTextWidths(lines);
 
   return (
-    <div className={cn('space-y-2', className)} {...props}>
-      {Array(lines).fill(null).map((_, index) => (
+    <div className={cn('space-y-2', className)} data-testid={testId} {...buildAriaProps()}>
+      {generateArray(lines).map(index => (
         <BaseSkeleton
           key={index}
-          className={cn('h-4', widthClasses[lineWidths[index] as keyof typeof widthClasses])}
+          className={cn(HEIGHT.TEXT_SMALL, TEXT_WIDTH_CLASSES[lineWidths[index] ?? 'full'])}
           animate={animate}
+          data-testid={buildTestId(testId, `line-${index}`)}
         />
       ))}
     </div>
@@ -123,7 +220,42 @@ const TextSkeleton: React.FC<TextSkeletonConfig> = ({
 };
 
 /**
- * Property Card Skeleton Component
+ * Property Details Component (extracted for SRP)
+ */
+const PropertyDetails: React.FC<{
+  animate: boolean;
+  testId?: string;
+}> = ({ animate, testId }) => (
+  <>
+    <div className="flex space-x-4 mb-3">
+      {generateArray(3).map(i => (
+        <BaseSkeleton
+          key={i}
+          className={`${HEIGHT.TEXT_SMALL} ${WIDTH.SMALL}`}
+          animate={animate}
+          data-testid={buildTestId(testId, `detail-${i}`)}
+        />
+      ))}
+    </div>
+
+    <div className="flex items-center space-x-2 mb-3">
+      <BaseSkeleton
+        className={`${HEIGHT.TEXT_SMALL} ${WIDTH.ICON}`}
+        animate={animate}
+        rounded="sm"
+        data-testid={buildTestId(testId, 'rating-icon')}
+      />
+      <BaseSkeleton
+        className={`${HEIGHT.TEXT_SMALL} ${WIDTH.RATING}`}
+        animate={animate}
+        data-testid={buildTestId(testId, 'rating-value')}
+      />
+    </div>
+  </>
+);
+
+/**
+ * Property Card Skeleton Component (composed of smaller components)
  */
 const PropertyCardSkeleton: React.FC<PropertySkeletonConfig> = ({
   variant = 'default',
@@ -131,373 +263,247 @@ const PropertyCardSkeleton: React.FC<PropertySkeletonConfig> = ({
   showDetails = true,
   showActions = true,
   className,
-  animate = true,
-  ...props
-}) => {
-  const variants = {
-    default: 'space-y-4',
-    compact: 'space-y-2',
-    list: 'flex space-x-4 space-y-0',
-  };
+  animate = SKELETON_DEFAULTS.ANIMATION_ENABLED,
+  'data-testid': testId,
+}) => (
+  <div
+    className={cn('bg-white rounded-lg p-4', PROPERTY_VARIANT_CLASSES[variant], className)}
+    data-testid={testId}
+    {...buildAriaProps()}
+  >
+    {showImage && (
+      <BaseSkeleton
+        className={PROPERTY_IMAGE_CLASSES[variant]}
+        animate={animate}
+        rounded="lg"
+        data-testid={buildTestId(testId, 'image')}
+      />
+    )}
 
-  const imageClasses = {
-    default: 'w-full h-48',
-    compact: 'w-full h-32',
-    list: 'w-32 h-32 flex-shrink-0',
-  };
+    <div className={variant === 'list' ? 'flex-1' : ''}>
+      <BaseSkeleton
+        className={`${HEIGHT.TEXT_MEDIUM} ${WIDTH.THREE_QUARTERS} mb-2`}
+        animate={animate}
+        data-testid={buildTestId(testId, 'title')}
+      />
+
+      <BaseSkeleton
+        className={`${HEIGHT.TEXT_SMALL} ${WIDTH.HALF} mb-3`}
+        animate={animate}
+        data-testid={buildTestId(testId, 'location')}
+      />
+
+      {showDetails && <PropertyDetails animate={animate} testId={testId} />}
+
+      <div className="flex justify-between items-center">
+        <BaseSkeleton
+          className={`${HEIGHT.TEXT_MEDIUM} ${WIDTH.MEDIUM}`}
+          animate={animate}
+          data-testid={buildTestId(testId, 'price')}
+        />
+        {showActions && (
+          <BaseSkeleton
+            className={`${HEIGHT.TEXT_SMALL} ${WIDTH.ICON}`}
+            animate={animate}
+            rounded="sm"
+            data-testid={buildTestId(testId, 'action')}
+          />
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+/**
+ * Skeleton Grid Component (pure layout component)
+ */
+const SkeletonGrid: React.FC<SkeletonGridConfig & { children: React.ReactNode }> = ({
+  columns,
+  rows,
+  gap = SKELETON_DEFAULTS.GRID_GAP,
+  className,
+  children,
+  'data-testid': testId,
+}) => (
+  <div
+    className={cn('grid', GRID_COL_CLASSES[columns], GAP_CLASSES[gap], className)}
+    data-testid={testId}
+    role="list"
+    aria-busy="true"
+    aria-live="polite"
+  >
+    {generateArray(rows * columns).map(index => (
+      <div key={index} role="listitem">
+        {children}
+      </div>
+    ))}
+  </div>
+);
+
+/**
+ * Gallery Grid Component (extracted for SRP)
+ */
+const GalleryGrid: React.FC = () => (
+  <div className="grid grid-cols-4 gap-4">
+    {generateArray(4).map(i => (
+      <BaseSkeleton
+        key={i}
+        className={`${WIDTH.FULL} ${HEIGHT.IMAGE_THUMB}`}
+        rounded="md"
+      />
+    ))}
+  </div>
+);
+
+/**
+ * Amenities Section Component (extracted for SRP)
+ */
+const AmenitiesSection: React.FC = () => (
+  <div className="space-y-3 mt-6">
+    <BaseSkeleton className={`${HEIGHT.TEXT_MEDIUM} ${WIDTH.THIRD}`} />
+    <div className="grid grid-cols-2 gap-3">
+      {generateArray(6).map(i => (
+        <BaseSkeleton
+          key={i}
+          className={`${HEIGHT.TEXT_SMALL} ${WIDTH.FULL}`}
+        />
+      ))}
+    </div>
+  </div>
+);
+
+/**
+ * Booking Card Component (extracted for SRP)
+ */
+const BookingCard: React.FC = () => (
+  <div className="bg-white rounded-lg p-4 space-y-4">
+    <BaseSkeleton className={`${HEIGHT.TEXT_MEDIUM} ${WIDTH.FULL}`} />
+    <BaseSkeleton className={`${HEIGHT.TEXT_SMALL} ${WIDTH.FULL}`} />
+    <BaseSkeleton className={`${HEIGHT.BUTTON} ${WIDTH.FULL}`} rounded="md" />
+  </div>
+);
+
+/**
+ * Factory functions (pure functions, not a class)
+ */
+const createPropertyGrid = (config: PropertyGridConfig = {}) => {
+  const {
+    count = SKELETON_DEFAULTS.PROPERTY_GRID_COUNT,
+    variant = 'default',
+    columns = SKELETON_DEFAULTS.GRID_COLUMNS,
+    gap = SKELETON_DEFAULTS.GRID_GAP,
+    className,
+    'data-testid': testId,
+  } = config;
+
+  const rows = Math.ceil(count / columns);
 
   return (
-    <div className={cn('bg-white rounded-lg p-4', variants[variant], className)} {...props}>
-      {/* Image Skeleton */}
+    <SkeletonGrid columns={columns} rows={rows} gap={gap} className={className} data-testid={testId}>
+      <PropertyCardSkeleton variant={variant} />
+    </SkeletonGrid>
+  );
+};
+
+const createPropertyCard = (config: PropertySkeletonConfig = {}) =>
+  <PropertyCardSkeleton {...config} />;
+
+const createTextBlock = (config: TextBlockConfig = {}) => {
+  const { lines = 3, widths, className, 'data-testid': testId } = config;
+  return <TextSkeleton lines={lines} widths={widths} className={className} data-testid={testId} />;
+};
+
+const createDetailPage = (config: DetailPageConfig = {}) => {
+  const {
+    showImage = true,
+    showGallery = true,
+    showDescription = true,
+    showAmenities = true,
+    className,
+    'data-testid': testId,
+  } = config;
+
+  return (
+    <div className={cn('space-y-6', className)} data-testid={testId} {...buildAriaProps()}>
       {showImage && (
-        <BaseSkeleton 
-          className={imageClasses[variant]}
-          animate={animate}
+        <BaseSkeleton
+          className={`${WIDTH.FULL} ${HEIGHT.IMAGE_HERO}`}
           rounded="lg"
+          data-testid={buildTestId(testId, 'hero')}
         />
       )}
 
-      {/* Content Area */}
-      <div className={variant === 'list' ? 'flex-1' : ''}>
-        {/* Title */}
-        <BaseSkeleton 
-          className="h-5 w-3/4 mb-2" 
-          animate={animate}
-        />
+      {showGallery && <GalleryGrid />}
 
-        {/* Location */}
-        <BaseSkeleton 
-          className="h-4 w-1/2 mb-3" 
-          animate={animate}
-        />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <BaseSkeleton className={`${HEIGHT.TEXT_MEDIUM} ${WIDTH.HALF}`} />
+          <BaseSkeleton className={`${HEIGHT.TEXT_SMALL} ${WIDTH.THIRD}`} />
 
-        {showDetails && (
-          <>
-            {/* Details */}
-            <div className="flex space-x-4 mb-3">
-              <BaseSkeleton className="h-4 w-16" animate={animate} />
-              <BaseSkeleton className="h-4 w-16" animate={animate} />
-              <BaseSkeleton className="h-4 w-16" animate={animate} />
-            </div>
+          {showDescription && <TextSkeleton lines={5} className="mt-6" />}
+          {showAmenities && <AmenitiesSection />}
+        </div>
 
-            {/* Rating */}
-            <div className="flex items-center space-x-2 mb-3">
-              <BaseSkeleton className="h-4 w-4" animate={animate} rounded="sm" />
-              <BaseSkeleton className="h-4 w-12" animate={animate} />
-            </div>
-          </>
-        )}
-
-        {/* Price */}
-        <div className="flex justify-between items-center">
-          <BaseSkeleton className="h-5 w-20" animate={animate} />
-          {showActions && (
-            <BaseSkeleton className="h-4 w-4" animate={animate} rounded="sm" />
-          )}
+        <div className="space-y-4">
+          <BookingCard />
         </div>
       </div>
     </div>
   );
 };
 
-/**
- * Skeleton Grid Component
- */
-const SkeletonGrid: React.FC<SkeletonGridConfig & { children: React.ReactNode }> = ({
-  columns,
-  rows,
-  gap = 'md',
-  responsive,
-  className,
-  children,
-  ...props
-}) => {
-  const gapClasses = {
-    sm: 'gap-3',
-    md: 'gap-6',
-    lg: 'gap-8',
-  };
-
-  const gridCols = {
-    1: 'grid-cols-1',
-    2: 'grid-cols-1 sm:grid-cols-2',
-    3: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
-    4: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4',
-    5: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-    6: 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6',
-  };
-
-  const responsiveClasses = responsive ? Object.entries(responsive)
-    .map(([breakpoint, cols]) => `${breakpoint}:grid-cols-${cols}`)
-    .join(' ') : '';
+const createListView = (config: PropertyGridConfig = {}) => {
+  const { count = 5, className, 'data-testid': testId } = config;
 
   return (
-    <div 
-      className={cn(
-        'grid',
-        gridCols[columns],
-        responsiveClasses,
-        gapClasses[gap],
-        className
-      )}
-      {...props}
-    >
-      {Array(rows * columns).fill(null).map((_, index) => (
-        <React.Fragment key={index}>
-          {children}
-        </React.Fragment>
+    <div className={cn('space-y-4', className)} data-testid={testId} role="list" aria-busy="true" aria-live="polite">
+      {generateArray(count).map(i => (
+        <PropertyCardSkeleton key={i} variant="list" data-testid={buildTestId(testId, `item-${i}`)} />
       ))}
     </div>
   );
 };
 
-/**
- * LoadingSkeletonFactory - Main factory class
- */
-export class LoadingSkeletonFactory {
-  /**
-   * Create a property grid skeleton
-   */
-  static createPropertyGrid(config: {
-    count?: number;
-    variant?: PropertySkeletonConfig['variant'];
-    columns?: SkeletonGridConfig['columns'];
-    className?: string;
-  } = {}) {
-    const {
-      count = 6,
-      variant = 'default',
-      columns = 3,
-      className
-    } = config;
-
-    const rows = Math.ceil(count / columns);
-
-    return (
-      <SkeletonGrid
-        columns={columns}
-        rows={rows}
-        gap="md"
-        className={className}
-      >
-        <PropertyCardSkeleton variant={variant} />
-      </SkeletonGrid>
-    );
-  }
-
-  /**
-   * Create a dashboard skeleton
-   */
-  static createDashboard(config: { className?: string } = {}) {
-    const { className } = config;
-
-    return (
-      <div className={cn('space-y-8', className)}>
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <BaseSkeleton className="h-8 w-48" />
-            <BaseSkeleton className="h-4 w-32" />
-          </div>
-          <BaseSkeleton className="h-10 w-32 rounded-lg" />
-        </div>
-
-        {/* Navigation */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="space-y-4">
-            <BaseSkeleton className="h-6 w-24" />
-            {Array(5).fill(null).map((_, i) => (
-              <BaseSkeleton key={i} className="h-10 w-full rounded-lg" />
-            ))}
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-6">
-            {Array(4).fill(null).map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-6 space-y-4">
-                <BaseSkeleton className="h-6 w-40" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <PropertyCardSkeleton variant="compact" />
-                  <PropertyCardSkeleton variant="compact" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /**
-   * Create a search results skeleton
-   */
-  static createSearchResults(config: {
-    count?: number;
-    layout?: 'grid' | 'list';
-    className?: string;
-  } = {}) {
-    const {
-      count = 12,
-      layout = 'grid',
-      className
-    } = config;
-
-    if (layout === 'list') {
-      return (
-        <div className={cn('space-y-4', className)}>
-          {Array(count).fill(null).map((_, i) => (
-            <PropertyCardSkeleton key={i} variant="list" />
-          ))}
-        </div>
-      );
-    }
-
-    return this.createPropertyGrid({ count, className });
-  }
-
-  /**
-   * Create a homepage skeleton
-   */
-  static createHomepage(config: { className?: string } = {}) {
-    const { className } = config;
-
-    return (
-      <div className={cn('space-y-12', className)}>
-        {/* Hero Section */}
-        <div className="text-center space-y-4">
-          <BaseSkeleton className="h-12 w-80 mx-auto" />
-          <BaseSkeleton className="h-6 w-96 mx-auto" />
-          <BaseSkeleton className="h-14 w-72 mx-auto rounded-lg" />
-        </div>
-
-        {/* Featured Properties */}
-        <div className="space-y-6">
-          <BaseSkeleton className="h-8 w-64" />
-          {this.createPropertyGrid({ count: 8, columns: 4 })}
-        </div>
-
-        {/* Categories */}
-        <div className="space-y-6">
-          <BaseSkeleton className="h-8 w-48" />
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
-            {Array(12).fill(null).map((_, i) => (
-              <div key={i} className="text-center space-y-2">
-                <BaseSkeleton className="h-16 w-16 mx-auto rounded-full" />
-                <BaseSkeleton className="h-4 w-20 mx-auto" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /**
-   * Create a property details skeleton
-   */
-  static createPropertyDetails(config: { className?: string } = {}) {
-    const { className } = config;
-
-    return (
-      <div className={cn('space-y-8', className)}>
-        {/* Image Gallery */}
-        <BaseSkeleton className="w-full h-96 rounded-lg" />
-
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* Header */}
-            <div className="space-y-4">
-              <BaseSkeleton className="h-8 w-3/4" />
-              <BaseSkeleton className="h-5 w-1/2" />
-              <div className="flex items-center space-x-4">
-                <BaseSkeleton className="h-5 w-20" />
-                <BaseSkeleton className="h-5 w-24" />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-4">
-              <BaseSkeleton className="h-6 w-32" />
-              <TextSkeleton lines={4} />
-            </div>
-
-            {/* Amenities */}
-            <div className="space-y-4">
-              <BaseSkeleton className="h-6 w-48" />
-              <div className="grid grid-cols-2 gap-3">
-                {Array(8).fill(null).map((_, i) => (
-                  <div key={i} className="flex items-center space-x-2">
-                    <BaseSkeleton className="h-5 w-5 rounded" />
-                    <BaseSkeleton className="h-4 w-32" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Booking Card */}
-          <div className="bg-white border rounded-lg p-6 space-y-4">
-            <div className="flex items-center space-x-2">
-              <BaseSkeleton className="h-8 w-24" />
-              <BaseSkeleton className="h-5 w-16" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <BaseSkeleton className="h-12 rounded" />
-              <BaseSkeleton className="h-12 rounded" />
-            </div>
-            <BaseSkeleton className="h-10 rounded" />
-            <BaseSkeleton className="h-12 w-full rounded-lg" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /**
-   * Create custom skeleton with builder pattern
-   */
-  static custom() {
-    return new SkeletonBuilder();
-  }
-}
+const createCompactGrid = (config: PropertyGridConfig = {}) =>
+  createPropertyGrid({
+    ...config,
+    variant: 'compact',
+    columns: config.columns ?? 4,
+  });
 
 /**
- * Skeleton Builder for complex custom skeletons
+ * LoadingSkeletonFactory - Pure function-based factory (no class needed)
  */
-class SkeletonBuilder {
-  private components: React.ReactNode[] = [];
+export const LoadingSkeletonFactory = {
+  createPropertyGrid,
+  createPropertyCard,
+  createTextBlock,
+  createDetailPage,
+  createListView,
+  createCompactGrid,
+} as const;
 
-  text(config: TextSkeletonConfig): this {
-    this.components.push(<TextSkeleton key={this.components.length} {...config} />);
-    return this;
-  }
-
-  skeleton(config: SkeletonConfig): this {
-    this.components.push(<BaseSkeleton key={this.components.length} {...config} />);
-    return this;
-  }
-
-  propertyCard(config: PropertySkeletonConfig = {}): this {
-    this.components.push(<PropertyCardSkeleton key={this.components.length} {...config} />);
-    return this;
-  }
-
-  spacer(size: 'sm' | 'md' | 'lg' = 'md'): this {
-    const heights = { sm: 'h-2', md: 'h-4', lg: 'h-8' };
-    this.components.push(<div key={this.components.length} className={heights[size]} />);
-    return this;
-  }
-
-  build(containerClass?: string): React.ReactElement {
-    return (
-      <div className={containerClass}>
-        {this.components}
-      </div>
-    );
-  }
-}
-
-// Export components for direct use
+/**
+ * Export individual components for direct use
+ */
 export { BaseSkeleton, TextSkeleton, PropertyCardSkeleton, SkeletonGrid };
+
+/**
+ * Export type definitions
+ */
+export type {
+  SkeletonConfig,
+  SkeletonGridConfig,
+  PropertySkeletonConfig,
+  TextSkeletonConfig,
+  PropertyGridConfig,
+  TextBlockConfig,
+  DetailPageConfig,
+  RoundedSize,
+  GapSize,
+  GridColumns,
+  TextWidth,
+  PropertyVariant,
+};
+
 export default LoadingSkeletonFactory;

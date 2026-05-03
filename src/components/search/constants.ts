@@ -46,6 +46,20 @@ export const SIZES = {
 // Location Suggestions
 export const MAX_LOCATION_SUGGESTIONS = 6;
 
+// Default Location Suggestions Data
+export const DEFAULT_LOCATION_SUGGESTIONS = [
+  { id: '1', name: 'Paris', description: 'France', type: 'city' as const, coordinates: { lat: 48.8566, lng: 2.3522 } },
+  { id: '2', name: 'London', description: 'United Kingdom', type: 'city' as const, coordinates: { lat: 51.5074, lng: -0.1278 } },
+  { id: '3', name: 'New York', description: 'New York, United States', type: 'city' as const, coordinates: { lat: 40.7128, lng: -74.0060 } },
+  { id: '4', name: 'Tokyo', description: 'Japan', type: 'city' as const, coordinates: { lat: 35.6762, lng: 139.6503 } },
+  { id: '5', name: 'Barcelona', description: 'Spain', type: 'city' as const, coordinates: { lat: 41.3851, lng: 2.1734 } },
+  { id: '6', name: 'Rome', description: 'Italy', type: 'city' as const, coordinates: { lat: 41.9028, lng: 12.4964 } },
+  { id: '7', name: 'Amsterdam', description: 'Netherlands', type: 'city' as const, coordinates: { lat: 52.3676, lng: 4.9041 } },
+  { id: '8', name: 'Berlin', description: 'Germany', type: 'city' as const, coordinates: { lat: 52.5200, lng: 13.4050 } },
+  { id: '9', name: 'Sydney', description: 'Australia', type: 'city' as const, coordinates: { lat: -33.8688, lng: 151.2093 } },
+  { id: '10', name: 'Los Angeles', description: 'California, United States', type: 'city' as const, coordinates: { lat: 34.0522, lng: -118.2437 } },
+] as const;
+
 // Styling Classes
 export const COMMON_CLASSES = {
   BUTTON_HOVER: 'hover:bg-gray-50',

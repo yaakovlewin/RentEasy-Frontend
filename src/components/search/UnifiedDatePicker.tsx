@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { memo, useRef, useState } from 'react';
 
 import { format } from 'date-fns';
 import { Calendar as CalendarIcon } from 'lucide-react';
@@ -24,7 +24,7 @@ interface UnifiedDatePickerProps {
   autoClose?: boolean;
 }
 
-export function UnifiedDatePicker({
+function UnifiedDatePickerComponent({
   checkIn,
   checkOut,
   onDateSelect,
@@ -259,3 +259,6 @@ export function UnifiedDatePicker({
     </div>
   );
 }
+
+export const UnifiedDatePicker = memo(UnifiedDatePickerComponent);
+UnifiedDatePicker.displayName = 'UnifiedDatePicker';

@@ -175,9 +175,55 @@ export function isValidUrl(url: string): boolean {
 }
 
 /**
- * Validates a password strength
+ * Password validation requirements
+ * Used consistently across register and password change forms
+ */
+export const PASSWORD_REQUIREMENTS = [
+  {
+    label: 'At least 8 characters',
+    test: (password: string) => password.length >= 8,
+  },
+  {
+    label: 'One uppercase letter',
+    test: (password: string) => /[A-Z]/.test(password),
+  },
+  {
+    label: 'One lowercase letter',
+    test: (password: string) => /[a-z]/.test(password),
+  },
+  {
+    label: 'One number',
+    test: (password: string) => /[0-9]/.test(password),
+  },
+  {
+    label: 'One special character',
+    test: (password: string) => /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  },
+] as const;
+
+/**
+ * Validates password against all requirements
+ * @param password - Password to validate
+ * @returns True if all requirements are met
+ */
+export function isPasswordValid(password: string): boolean {
+  return PASSWORD_REQUIREMENTS.every(req => req.test(password));
+}
+
+/**
+ * Gets which password requirements are met
+ * @param password - Password to check
+ * @returns Array of booleans indicating met requirements
+ */
+export function getPasswordRequirementsMet(password: string): boolean[] {
+  return PASSWORD_REQUIREMENTS.map(req => req.test(password));
+}
+
+/**
+ * Validates a password strength (legacy format for backward compatibility)
  * @param password - Password to validate
  * @returns Object with validation results
+ * @deprecated Use isPasswordValid and PASSWORD_REQUIREMENTS instead
  */
 export function validatePassword(password: string): {
   isValid: boolean;

@@ -21,7 +21,7 @@
 import React, { memo, useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, MapPin, Star, Share, Eye, Filter, Grid3X3, List, Calendar, DollarSign } from 'lucide-react';
+import { Heart, MapPin, Share, Eye, Filter, Grid3X3, List, Calendar, DollarSign } from 'lucide-react';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { RatingDisplay } from '@/components/ui/RatingDisplay';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 // Dashboard Types
 import type { DashboardFavorite, DashboardLoadingState, DashboardErrorState } from '../types';
@@ -144,18 +146,20 @@ const FavoritePropertyCard = memo<{
                     {property.location}
                   </p>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-medium">{property.rating}</span>
-                  <span className="text-xs text-gray-500">({property.reviews})</span>
-                </div>
+                <RatingDisplay
+                  rating={property.rating}
+                  reviews={property.reviews}
+                  size="sm"
+                  showReviewCount={true}
+                />
               </div>
               
               <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-xl font-bold">{formatCurrency(property.price)}</span>
-                  <span className="text-gray-600 text-sm"> /night</span>
-                </div>
+                <PriceDisplay
+                  price={property.price}
+                  size="sm"
+                  align="left"
+                />
                 <div className="flex items-center space-x-2">
                   <span className="text-xs text-gray-500">
                     Saved {formatDate(property.saved, DATE_FORMATS.SHORT)}
@@ -221,10 +225,12 @@ const FavoritePropertyCard = memo<{
               {property.title}
             </h3>
           </Link>
-          <div className="flex items-center space-x-1 flex-shrink-0">
-            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            <span className="text-sm font-medium">{property.rating}</span>
-          </div>
+          <RatingDisplay
+            rating={property.rating}
+            size="sm"
+            variant="compact"
+            showReviewCount={false}
+          />
         </div>
 
         <p className="text-gray-600 text-sm mb-3 flex items-center">
@@ -233,10 +239,11 @@ const FavoritePropertyCard = memo<{
         </p>
 
         <div className="flex items-center justify-between">
-          <div>
-            <span className="text-lg font-bold">{formatCurrency(property.price)}</span>
-            <span className="text-gray-600 text-sm"> /night</span>
-          </div>
+          <PriceDisplay
+            price={property.price}
+            size="sm"
+            align="left"
+          />
           <span className="text-xs text-gray-500">
             Saved {formatDate(property.saved, DATE_FORMATS.SHORT)}
           </span>

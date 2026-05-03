@@ -3,22 +3,28 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Home, Lock, Mail } from 'lucide-react';
+import { Home, Lock, Mail } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { PasswordInput } from '@/components/forms/PasswordInput';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, isAuthenticated, isLoading } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  const { error, handleSubmit: submitForm, isLoading } = useFormSubmit(async () => {
+    await login(email, password);
+    const redirect = searchParams.get('redirect');
+    router.push(redirect || '/dashboard');
+  });
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -28,25 +34,13 @@ export default function LoginForm() {
     }
   }, [isAuthenticated, router, searchParams]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    try {
-      await login(email, password);
-
-      // Redirect after successful login
-      const redirect = searchParams.get('redirect');
-      router.push(redirect || '/dashboard');
-    } catch (error: unknown) {
-      // Display user-friendly error message
-      const errorMessage = error instanceof Error ? error.message : 'Invalid email or password';
-      setError(errorMessage);
-    }
+    submitForm();
   };
 
   const handleGoogleLogin = () => {
-    // TODO: Implement Google OAuth
+    // Google OAuth not yet implemented
   };
 
   const handleGuestLogin = () => {
@@ -54,7 +48,7 @@ export default function LoginForm() {
     setPassword('password123');
   };
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className='flex items-center justify-center min-h-screen'>
         <LoadingSpinner size='lg' />
@@ -129,24 +123,14 @@ export default function LoginForm() {
                       Forgot password?
                     </Link>
                   </div>
-                  <div className='relative'>
-                    <Input
-                      id='password'
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      className='w-full pr-10'
-                      placeholder='Enter your password'
-                      required
-                    />
-                    <button
-                      type='button'
-                      onClick={() => setShowPassword(!showPassword)}
-                      className='absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700'
-                    >
-                      {showPassword ? <EyeOff className='h-5 w-5' /> : <Eye className='h-5 w-5' />}
-                    </button>
-                  </div>
+                  <PasswordInput
+                    id='password'
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    className='w-full'
+                    placeholder='Enter your password'
+                    required
+                  />
                 </div>
 
                 {/* Remember Me Checkbox */}

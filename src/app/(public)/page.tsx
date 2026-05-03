@@ -12,7 +12,7 @@
 import type { Metadata } from 'next';
 import { generateDefaultMetadata, generateHomepageStructuredData } from '@/lib/metadata';
 import { getHeroImages, getCategoryNames } from '@/lib/data/homepage-data';
-import { HomePage } from '@/components/homepage';
+import { HomePage } from '@/components/homepage/HomePage';
 
 /**
  * Enhanced metadata generation with server-side data

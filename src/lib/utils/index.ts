@@ -72,5 +72,38 @@ export {
   MemoryCache,
 } from './cache';
 
+// Re-export environment utilities
+export {
+  isBrowser,
+  isServer,
+  isLocalhost,
+  isProduction,
+  isDevelopment,
+  hasLocalStorage,
+  hasSessionStorage,
+} from './environment';
+
+// Re-export cookie utilities
+export {
+  setCookie,
+  getCookie,
+  deleteCookie,
+  hasCookie,
+  setAuthTokenCookies,
+  clearAuthTokenCookies,
+} from './cookies';
+export type { CookieOptions } from './cookies';
+
+// Re-export time utilities
+export {
+  TIME,
+  toMilliseconds,
+  expiresIn,
+  expiresInMs,
+} from './time';
+
+// Re-export object security utilities
+export { sanitizeKeys, safeObjectMerge } from './objectSecurity';
+
 // Type exports for better IDE support
 export type { ClassValue } from 'clsx';

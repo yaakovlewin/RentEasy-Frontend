@@ -12,6 +12,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 
 import { authAPI, AuthResponse } from '@/lib/api';
 import { tokenManager } from '@/lib/api/core/TokenManager';
+import { setAuthTokenCookies } from '@/lib/utils';
 
 /**
  * Authentication context type definition
@@ -134,16 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               const refreshToken = tokenManager.getRefreshToken();
               
               // Manually sync to cookies without triggering setTokens
-              const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-              const secureFlag = isLocalhost ? '' : 'secure; ';
-              const tokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000).toUTCString();
-              const cookieOptions = `path=/; expires=${tokenExpires}; ${secureFlag}samesite=lax`;
-              
-              document.cookie = `token=${currentToken}; ${cookieOptions}`;
-              if (refreshToken) {
-                const refreshExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
-                document.cookie = `refreshToken=${refreshToken}; path=/; expires=${refreshExpires}; ${secureFlag}samesite=lax`;
-              }
+              setAuthTokenCookies(currentToken, refreshToken || undefined);
               
               // DEBUG: Log cookie sync during initialization
               if (process.env.NODE_ENV === 'development') {

@@ -5,14 +5,17 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { Eye, EyeOff, Home, Lock, Mail, MapPin, Phone, User } from 'lucide-react';
+import { Home, Lock, Mail, MapPin, Phone, User } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { PasswordInput } from '@/components/forms/PasswordInput';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { useFormSubmit } from '@/hooks/useFormSubmit';
+import { PASSWORD_REQUIREMENTS } from '@/lib/utils/validation';
 
 export default function RegisterPageClient() {
   const [formData, setFormData] = useState({
@@ -24,11 +27,26 @@ export default function RegisterPageClient() {
     confirmPassword: '',
     role: 'guest' as 'guest' | 'owner',
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState('');
   const router = useRouter();
-  const { register, isAuthenticated, isLoading } = useAuth();
+  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
+
+  const { error, handleSubmit: submitForm, isLoading } = useFormSubmit(async () => {
+    if (formData.password !== formData.confirmPassword) {
+      throw new Error('Passwords do not match');
+    }
+
+    const userData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phoneNumber: formData.phone,
+      password: formData.password,
+      role: formData.role,
+    };
+
+    await register(userData);
+    router.push('/dashboard');
+  });
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -44,33 +62,9 @@ export default function RegisterPageClient() {
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    // Validate passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    try {
-      const userData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phoneNumber: formData.phone,
-        password: formData.password,
-        role: formData.role,
-      };
-
-      await register(userData);
-
-      // Redirect to dashboard after successful registration
-      router.push('/dashboard');
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Registration failed. Please try again.');
-    }
+    submitForm();
   };
 
   return (
@@ -247,32 +241,14 @@ export default function RegisterPageClient() {
                   >
                     Password
                   </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                      <Lock className='h-5 w-5 text-gray-400' />
-                    </div>
-                    <Input
-                      id='password'
-                      name='password'
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className='pl-10 pr-10'
-                      placeholder='Create password'
-                      required
-                    />
-                    <button
-                      type='button'
-                      className='absolute inset-y-0 right-0 pr-3 flex items-center'
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className='h-5 w-5 text-gray-400 hover:text-gray-600' />
-                      ) : (
-                        <Eye className='h-5 w-5 text-gray-400 hover:text-gray-600' />
-                      )}
-                    </button>
-                  </div>
+                  <PasswordInput
+                    id='password'
+                    name='password'
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder='Create password'
+                    required
+                  />
                 </div>
 
                 <div>
@@ -282,32 +258,14 @@ export default function RegisterPageClient() {
                   >
                     Confirm password
                   </label>
-                  <div className='relative'>
-                    <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
-                      <Lock className='h-5 w-5 text-gray-400' />
-                    </div>
-                    <Input
-                      id='confirmPassword'
-                      name='confirmPassword'
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      className='pl-10 pr-10'
-                      placeholder='Confirm password'
-                      required
-                    />
-                    <button
-                      type='button'
-                      className='absolute inset-y-0 right-0 pr-3 flex items-center'
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className='h-5 w-5 text-gray-400 hover:text-gray-600' />
-                      ) : (
-                        <Eye className='h-5 w-5 text-gray-400 hover:text-gray-600' />
-                      )}
-                    </button>
-                  </div>
+                  <PasswordInput
+                    id='confirmPassword'
+                    name='confirmPassword'
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    placeholder='Confirm password'
+                    required
+                  />
                 </div>
               </div>
 
@@ -315,11 +273,9 @@ export default function RegisterPageClient() {
               <div className='text-xs text-gray-500 space-y-1'>
                 <p>Password must contain:</p>
                 <ul className='list-disc list-inside space-y-1 ml-2'>
-                  <li>At least 8 characters</li>
-                  <li>One uppercase letter</li>
-                  <li>One lowercase letter</li>
-                  <li>One number</li>
-                  <li>One special character</li>
+                  {PASSWORD_REQUIREMENTS.map((req, idx) => (
+                    <li key={idx}>{req.label}</li>
+                  ))}
                 </ul>
               </div>
 
@@ -345,9 +301,9 @@ export default function RegisterPageClient() {
               </div>
 
               {/* Submit Button */}
-              <Button type='submit' className='w-full py-6 text-base' disabled={isLoading}>
-                {isLoading && <LoadingSpinner size='sm' className='mr-2' />}
-                {isLoading ? 'Creating account...' : 'Create account'}
+              <Button type='submit' className='w-full py-6 text-base' disabled={isLoading || authLoading}>
+                {(isLoading || authLoading) && <LoadingSpinner size='sm' className='mr-2' />}
+                {isLoading || authLoading ? 'Creating account...' : 'Create account'}
               </Button>
             </form>
 

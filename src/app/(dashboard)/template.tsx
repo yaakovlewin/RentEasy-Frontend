@@ -50,24 +50,24 @@ export default function DashboardTemplate({ children }: DashboardTemplateProps) 
 
   // Different animation for initial load vs navigation
   const animationVariants = {
-    initial: isInitialLoad 
+    initial: isInitialLoad
       ? { opacity: 0, scale: 0.98 }
       : { opacity: 0, x: 20 },
-    animate: { 
-      opacity: 1, 
-      x: 0, 
+    animate: {
+      opacity: 1,
+      x: 0,
       scale: 1,
       transition: {
         duration: isInitialLoad ? 0.5 : 0.3,
-        ease: [0.25, 0.25, 0, 1],
+        ease: [0.25, 0.25, 0, 1] as [number, number, number, number],
       }
     },
-    exit: { 
-      opacity: 0, 
+    exit: {
+      opacity: 0,
       x: -20,
       transition: {
         duration: 0.2,
-        ease: [0.25, 0.25, 0, 1],
+        ease: [0.25, 0.25, 0, 1] as [number, number, number, number],
       }
     }
   };

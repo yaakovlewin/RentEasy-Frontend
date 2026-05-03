@@ -105,7 +105,10 @@ export default function DashboardContent() {
   
   // Profile editing state
   const [editingField, setEditingField] = useState<ProfileEditingField>(null);
-  
+
+  // Booking cancellation state
+  const [cancellingBookingId, setCancellingBookingId] = useState<string | null>(null);
+
   // Use the new enterprise-grade dashboard data hook
   const {
     user,
@@ -156,6 +159,20 @@ export default function DashboardContent() {
 
   const handleCancelEdit = () => {
     setEditingField(null);
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    setCancellingBookingId(bookingId);
+    try {
+      // TODO: Implement actual booking cancellation API call
+      // await api.bookings.cancel(bookingId);
+      await refreshData();
+    } catch (error) {
+      console.error('Booking cancellation failed:', error);
+      throw error;
+    } finally {
+      setCancellingBookingId(null);
+    }
   };
 
   // Show loading state while dashboard data is loading
@@ -239,6 +256,9 @@ export default function DashboardContent() {
                     <Suspense fallback={<DashboardTabLoader tabName="bookings" />}>
                       <DashboardBookings
                         bookings={bookings}
+                        onCancelBooking={handleCancelBooking}
+                        cancellingBookingId={cancellingBookingId}
+                        isActive={activeTab === 'bookings'}
                         isLoading={loading.bookingsLoading}
                         error={errors.bookingsError}
                       />
@@ -297,12 +317,13 @@ export default function DashboardContent() {
                     <Suspense fallback={<DashboardTabLoader tabName="profile settings" />}>
                       <DashboardProfile
                         profileData={user || {}}
-                        editingState={{ 
+                        editingState={{
                           editingField,
                           tempValue: '',
                           isSaving: false,
                           validationErrors: {}
                         }}
+                        isActive={activeTab === 'profile'}
                         isLoading={loading.profileLoading}
                         error={errors.profileError}
                         onEditField={handleEditField}

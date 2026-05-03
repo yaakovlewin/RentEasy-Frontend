@@ -291,12 +291,7 @@ export default function manifest(): MetadataRoute.Manifest {
     launch_handler: {
       client_mode: 'navigate-new',
     },
-    
-    // Edge sidebar configuration (for PWA-enabled browsers)
-    edge_side_panel: {
-      preferred_width: 400,
-    },
-    
+
     // Prefer related applications (set to false to promote PWA)
     prefer_related_applications: false,
     
@@ -415,7 +410,9 @@ export class ManifestUtils {
     required: boolean;
   }> {
     const icons = getIconConfigurations(baseUrl);
-    
+
+    if (!icons) return [];
+
     return icons.map(icon => ({
       src: icon.src!,
       size: icon.sizes!,

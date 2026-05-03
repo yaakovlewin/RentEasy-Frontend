@@ -23,6 +23,7 @@ import { AccountSettingsContent } from '@/components/profile/settings/AccountSet
 import { ProfilePhotoManager } from '@/components/profile/settings/ProfilePhotoManager';
 import { PreferencesManager } from '@/components/profile/settings/PreferencesManager';
 import { VerificationManager } from '@/components/profile/settings/VerificationManager';
+import { CoreSkeleton } from '@/components/ui/loading/skeletons';
 
 // Utils
 import { validateServerToken } from '@/lib/auth/server-utils';
@@ -76,7 +77,16 @@ export default async function AccountSettingsPage() {
       <div className="p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-6">Personal Information</h2>
         <Suspense fallback={<PersonalInfoSkeleton />}>
-          <AccountSettingsContent userId={user.userId} />
+          <AccountSettingsContent
+            userId={user.userId}
+            user={{
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              email: user.email,
+              phoneNumber: undefined,
+              role: user.role
+            }}
+          />
         </Suspense>
       </div>
 
@@ -87,7 +97,7 @@ export default async function AccountSettingsPage() {
           Verify your email and phone number to improve account security and booking success
         </p>
         <Suspense fallback={<VerificationSkeleton />}>
-          <VerificationManager userId={user.userId} />
+          <VerificationManager userId={user.userId} userRole={user.role} />
         </Suspense>
       </div>
 
@@ -201,13 +211,13 @@ export default async function AccountSettingsPage() {
 function ProfilePhotoSkeleton() {
   return (
     <div className="flex items-center space-x-4">
-      <div className="w-20 h-20 bg-gray-200 rounded-full animate-pulse" />
+      <CoreSkeleton variant="circular" width="w-20" height="h-20" shimmer={true} />
       <div className="space-y-2 flex-1">
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-48" />
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
+        <CoreSkeleton height="h-4" width="w-48" variant="rounded" shimmer={true} />
+        <CoreSkeleton height="h-4" width="w-32" variant="rounded" shimmer={true} />
         <div className="flex space-x-2">
-          <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
-          <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+          <CoreSkeleton height="h-8" width="w-20" variant="rounded" shimmer={true} />
+          <CoreSkeleton height="h-8" width="w-16" variant="rounded" shimmer={true} />
         </div>
       </div>
     </div>
@@ -219,8 +229,8 @@ function PersonalInfoSkeleton() {
     <div className="space-y-6">
       {[...Array(4)].map((_, i) => (
         <div key={i} className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-24" />
-          <div className="h-10 bg-gray-200 rounded animate-pulse" />
+          <CoreSkeleton height="h-4" width="w-24" variant="rounded" shimmer={true} />
+          <CoreSkeleton height="h-10" width="w-full" variant="rounded" shimmer={true} />
         </div>
       ))}
     </div>
@@ -233,10 +243,10 @@ function VerificationSkeleton() {
       {[...Array(2)].map((_, i) => (
         <div key={i} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
           <div className="space-y-1">
-            <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
-            <div className="h-3 bg-gray-200 rounded animate-pulse w-48" />
+            <CoreSkeleton height="h-4" width="w-32" variant="rounded" shimmer={true} />
+            <CoreSkeleton height="h-3" width="w-48" variant="rounded" shimmer={true} />
           </div>
-          <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
+          <CoreSkeleton height="h-8" width="w-20" variant="rounded" shimmer={true} />
         </div>
       ))}
     </div>
@@ -248,8 +258,8 @@ function PreferencesSkeleton() {
     <div className="space-y-6">
       {[...Array(3)].map((_, i) => (
         <div key={i} className="space-y-2">
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-32" />
-          <div className="h-10 bg-gray-200 rounded animate-pulse" />
+          <CoreSkeleton height="h-4" width="w-32" variant="rounded" shimmer={true} />
+          <CoreSkeleton height="h-10" width="w-full" variant="rounded" shimmer={true} />
         </div>
       ))}
     </div>

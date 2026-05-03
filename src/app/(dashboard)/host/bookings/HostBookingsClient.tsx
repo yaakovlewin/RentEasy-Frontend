@@ -33,12 +33,21 @@ import { Input } from '@/components/ui/input';
 
 import { useAsyncOperation } from '@/hooks/useAsyncOperation';
 
-interface ExtendedBooking extends Booking {
+interface ExtendedBooking extends Omit<Booking, 'property'> {
   property?: {
     id: string;
     title: string;
+    description?: string;
     location: string;
+    pricePerNight?: number;
+    maxGuests?: number;
+    bedrooms?: number;
+    bathrooms?: number;
     images?: string[];
+    amenities?: string[];
+    isActive?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
   };
   guest?: {
     id: string;
@@ -173,7 +182,7 @@ export default function HostBookingsClient() {
 
   const handleDeclineBooking = async (bookingId: string) => {
     const result = await executeBookingUpdate(async () => {
-      return await bookingsAPI.cancelBooking(bookingId, {
+      return await bookingsAPI.cancel(bookingId, {
         reason: 'Declined by host',
       });
     });

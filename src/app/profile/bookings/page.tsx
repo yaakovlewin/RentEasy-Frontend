@@ -61,9 +61,9 @@ async function validateGuestAccess(): Promise<JWTPayload> {
   }
 
   const user = validation.payload;
-  
+
   // Redirect non-guests to appropriate pages
-  if (user.role === 'owner' || user.role === 'host') {
+  if (user.role === 'owner') {
     redirect('/profile/properties');
   } else if (user.role === 'staff' || user.role === 'admin') {
     redirect('/profile/management');

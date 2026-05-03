@@ -4,6 +4,7 @@ import * as React from 'react'
 import { AlertCircle, CheckCircle, Info, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { cva, type VariantProps } from 'class-variance-authority'
+import { ValidationMessages } from './ValidationMessages'
 
 const validationMessageVariants = cva(
   'flex items-start gap-2 text-sm transition-all duration-200 animate-slide-down',
@@ -168,27 +169,19 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
   className
 }) => {
   const errorEntries = Object.entries(errors).filter(([, error]) => error)
-  
+
   if (errorEntries.length === 0) return null
 
+  const errorMessages = errorEntries.map(([, error]) => error)
+
   return (
-    <div className={cn(
-      'p-4 border border-red-200 bg-red-50 rounded-xl',
-      className
-    )}>
-      <div className="flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-        <div>
-          <h3 className="font-medium text-red-800 mb-2">{title}</h3>
-          <ul className="space-y-1">
-            {errorEntries.map(([field, error]) => (
-              <li key={field} className="text-sm text-red-700">
-                • {error}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+    <div className={className}>
+      <ValidationMessages
+        messages={errorMessages}
+        variant="error"
+        showIcon={true}
+        title={title}
+      />
     </div>
   )
 }
@@ -200,7 +193,7 @@ export const useFormValidation = <T extends Record<string, unknown>>(
 ) => {
   const [values, setValues] = React.useState<T>(initialValues)
   const [errors, setErrors] = React.useState<Record<keyof T, string>>({} as Record<keyof T, string>)
-  const [touched, setTouched] = React.useState<Record<keyof T, boolean>>({} as Record<keyof T, boolean>)
+  const [touched, setTouchedState] = React.useState<Record<keyof T, boolean>>({} as Record<keyof T, boolean>)
 
   const validateField = React.useCallback((field: keyof T, value: T[keyof T]) => {
     const rule = validationRules[field]
@@ -209,7 +202,7 @@ export const useFormValidation = <T extends Record<string, unknown>>(
 
   const setValue = React.useCallback((field: keyof T, value: T[keyof T]) => {
     setValues(prev => ({ ...prev, [field]: value }))
-    
+
     // Validate if field has been touched
     if (touched[field]) {
       const error = validateField(field, value)
@@ -218,8 +211,8 @@ export const useFormValidation = <T extends Record<string, unknown>>(
   }, [validateField, touched])
 
   const setTouched = React.useCallback((field: keyof T) => {
-    setTouched(prev => ({ ...prev, [field]: true }))
-    
+    setTouchedState(prev => ({ ...prev, [field]: true }))
+
     // Validate on blur
     const error = validateField(field, values[field])
     setErrors(prev => ({ ...prev, [field]: error || '' }))
@@ -236,7 +229,7 @@ export const useFormValidation = <T extends Record<string, unknown>>(
     })
 
     setErrors(newErrors)
-    setTouched(Object.keys(values).reduce((acc, field) => {
+    setTouchedState(Object.keys(values).reduce((acc, field) => {
       acc[field as keyof T] = true
       return acc
     }, {} as Record<keyof T, boolean>))
@@ -247,7 +240,7 @@ export const useFormValidation = <T extends Record<string, unknown>>(
   const reset = React.useCallback(() => {
     setValues(initialValues)
     setErrors({} as Record<keyof T, string>)
-    setTouched({} as Record<keyof T, boolean>)
+    setTouchedState({} as Record<keyof T, boolean>)
   }, [initialValues])
 
   return {
@@ -255,7 +248,7 @@ export const useFormValidation = <T extends Record<string, unknown>>(
     errors,
     touched,
     setValue,
-    setTouched: setTouched,
+    setTouched,
     validateAll,
     reset,
     isValid: Object.values(errors).every(error => !error)

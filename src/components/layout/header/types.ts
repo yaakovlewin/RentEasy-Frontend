@@ -12,6 +12,8 @@ export interface HeaderProps {
   showCategoryTabs?: boolean;
   /** Whether to show the scroll search bar */
   showScrollSearch?: boolean;
+  /** Header variant */
+  variant?: string;
 }
 
 export interface HeaderLogoProps {

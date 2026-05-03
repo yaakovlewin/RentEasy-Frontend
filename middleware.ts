@@ -77,8 +77,9 @@ function decodeJWT(token: string): JWTPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
-    
+
     const payload = parts[1];
+    if (!payload) return null;
     const decoded = JSON.parse(atob(payload));
     
     // Validate required fields

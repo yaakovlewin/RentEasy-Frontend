@@ -265,7 +265,8 @@ export class RobotsUtils {
   static generateRobotsText(config: RobotsConfig): string {
     let content = '';
 
-    for (const rule of config.rules) {
+    const rules = Array.isArray(config.rules) ? config.rules : [config.rules];
+    for (const rule of rules) {
       const userAgents = Array.isArray(rule.userAgent) ? rule.userAgent : [rule.userAgent];
       
       for (const userAgent of userAgents) {
@@ -312,7 +313,8 @@ export class RobotsUtils {
    */
   static canCrawlPath(userAgent: string, path: string, config: RobotsConfig): boolean {
     // Find matching rule for user agent
-    const matchingRule = config.rules.find(rule => {
+    const rules = Array.isArray(config.rules) ? config.rules : [config.rules];
+    const matchingRule = rules.find((rule: any) => {
       const agents = Array.isArray(rule.userAgent) ? rule.userAgent : [rule.userAgent];
       return agents.includes(userAgent) || agents.includes('*');
     });

@@ -2,10 +2,12 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Award, Play, Heart, Star, MapPin, ArrowRight } from 'lucide-react';
+import { Award, Play, Heart, MapPin, ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { RatingDisplay } from '@/components/ui/RatingDisplay';
+import { PriceDisplay } from '@/components/ui/PriceDisplay';
 
 import type { FeaturedProperty } from '@/lib/data/homepage-data';
 
@@ -111,9 +113,14 @@ export function FeaturedProperties({ featuredProperties }: FeaturedPropertiesPro
                       <h3 className='font-bold text-lg leading-tight flex-1 pr-3 group-hover:text-primary transition-colors'>
                         {property.title}
                       </h3>
-                      <div className='flex items-center space-x-1 bg-gradient-to-r from-yellow-50 to-orange-50 px-3 py-1.5 rounded-full border border-yellow-200'>
-                        <Star className='w-4 h-4 fill-yellow-400 text-yellow-400' aria-hidden="true" />
-                        <span className='text-sm font-bold text-gray-900'>{property.rating}</span>
+                      <div className='bg-gradient-to-r from-yellow-50 to-orange-50 px-3 py-1.5 rounded-full border border-yellow-200'>
+                        <RatingDisplay
+                          rating={property.rating}
+                          size="sm"
+                          variant="default"
+                          showReviewCount={false}
+                          className="space-x-1"
+                        />
                       </div>
                     </div>
 
@@ -133,19 +140,12 @@ export function FeaturedProperties({ featuredProperties }: FeaturedPropertiesPro
                     </ul>
 
                     <footer className='flex items-center justify-between pt-4 border-t border-gray-100'>
-                      <div className='flex items-center space-x-2'>
-                        <div className='flex items-baseline'>
-                          <span className='text-2xl font-bold text-gray-900'>
-                            ${property.price}
-                          </span>
-                          <span className='text-gray-600 text-sm'>/night</span>
-                        </div>
-                        {property.originalPrice && (
-                          <span className='text-sm text-gray-400 line-through'>
-                            ${property.originalPrice}
-                          </span>
-                        )}
-                      </div>
+                      <PriceDisplay
+                        price={property.price}
+                        originalPrice={property.originalPrice}
+                        size="md"
+                        align="left"
+                      />
                       <div className='flex items-center text-sm text-gray-500'>
                         <span className='font-medium'>{property.reviews} reviews</span>
                       </div>

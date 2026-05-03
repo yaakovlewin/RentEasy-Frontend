@@ -19,6 +19,7 @@ export enum ErrorCategory {
   COMPONENT = 'component',
   AUTH = 'auth',
   VALIDATION = 'validation',
+  SECURITY = 'security',
   PERFORMANCE = 'performance',
   UNKNOWN = 'unknown',
 }

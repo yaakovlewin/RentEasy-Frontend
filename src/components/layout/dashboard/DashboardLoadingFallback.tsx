@@ -1,13 +1,15 @@
 /**
  * @fileoverview Dashboard Loading Fallback Component
- * 
+ *
  * CLIENT COMPONENT providing optimized loading states for dashboard content.
- * Features role-specific skeletons and performance-optimized animations.
+ * Refactored to use Dependency Inversion Principle with role skeleton registry.
  */
 
 'use client';
 
-import { UserRole } from '@/types/auth';
+import { memo, Suspense, useMemo } from 'react';
+import type { UserRole } from '@/types/auth';
+import { RoleSkeletonRegistry, getRoleDisplayName } from './skeletons';
 
 interface DashboardLoadingFallbackProps {
   userRole: UserRole;
@@ -17,12 +19,19 @@ interface DashboardLoadingFallbackProps {
 
 /**
  * Dashboard loading fallback with role-specific skeletons
+ * Implements DIP - depends on abstractions (registry) not concrete implementations
  */
-export function DashboardLoadingFallback({ 
-  userRole, 
+const DashboardLoadingFallbackComponent = ({
+  userRole,
   showSkeleton = true,
-  className = '' 
-}: DashboardLoadingFallbackProps) {
+  className = ''
+}: DashboardLoadingFallbackProps) => {
+  // Memoize skeleton component lookup
+  const SkeletonComponent = useMemo(
+    () => RoleSkeletonRegistry[userRole],
+    [userRole]
+  );
+
   if (!showSkeleton) {
     return (
       <div className={`flex items-center justify-center py-12 ${className}`}>
@@ -44,12 +53,14 @@ export function DashboardLoadingFallback({
         <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
       </div>
 
-      {/* Role-specific content skeletons */}
-      {renderRoleSpecificSkeleton(userRole)}
+      {/* Role-specific content skeletons - lazy loaded with Suspense */}
+      <Suspense fallback={<div className="h-48 bg-gray-100 rounded animate-pulse" />}>
+        <SkeletonComponent />
+      </Suspense>
 
       {/* Generic content grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(6)].map((_, i) => (
+        {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
             <div className="space-y-4">
               <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
@@ -64,158 +75,7 @@ export function DashboardLoadingFallback({
       </div>
     </div>
   );
-}
+};
 
-/**
- * Render role-specific skeleton content
- */
-function renderRoleSpecificSkeleton(userRole: UserRole) {
-  switch (userRole) {
-    case 'admin':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* System metrics */}
-          {[
-            'Total Users',
-            'Active Properties', 
-            'Monthly Bookings',
-            'System Health'
-          ].map((label, i) => (
-            <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="space-y-4">
-                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-10 w-16 bg-gray-200 rounded animate-pulse"></div>
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-green-200 rounded-full animate-pulse"></div>
-                  <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'staff':
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Staff metrics */}
-          {[
-            'Pending Reviews',
-            'New Properties',
-            'Support Tickets'
-          ].map((label, i) => (
-            <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="space-y-4">
-                <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-8 w-12 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'owner':
-      return (
-        <>
-          {/* Host overview cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {[
-              'Total Earnings',
-              'Active Listings',
-              'Booking Rate',
-              'Average Rating'
-            ].map((label, i) => (
-              <div key={i} className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="space-y-4">
-                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="flex items-center space-x-2">
-                    <div className="h-3 w-3 bg-green-200 rounded animate-pulse"></div>
-                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse"></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Recent bookings table skeleton */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
-              <div className="space-y-3">
-                {[...Array(5)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4">
-                    <div className="h-10 w-10 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-3 w-24 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                    <div className="h-6 w-16 bg-gray-200 rounded animate-pulse"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
-      );
-
-    default: // guest
-      return (
-        <>
-          {/* Guest quick actions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="space-y-4">
-                <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-10 w-24 bg-blue-200 rounded animate-pulse"></div>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="space-y-4">
-                <div className="h-6 w-28 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 w-44 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-10 w-28 bg-green-200 rounded animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recent activity */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <div className="space-y-4">
-              <div className="h-6 w-36 bg-gray-200 rounded animate-pulse"></div>
-              <div className="space-y-3">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="flex items-center space-x-4">
-                    <div className="h-12 w-12 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-40 bg-gray-200 rounded animate-pulse"></div>
-                      <div className="h-3 w-28 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                    <div className="h-4 w-20 bg-gray-200 rounded animate-pulse"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </>
-      );
-  }
-}
-
-/**
- * Get display name for user role
- */
-function getRoleDisplayName(role: UserRole): string {
-  switch (role) {
-    case 'admin':
-      return 'admin';
-    case 'staff':
-      return 'staff';
-    case 'owner':
-      return 'host';
-    default:
-      return 'user';
-  }
-}
+export const DashboardLoadingFallback = memo(DashboardLoadingFallbackComponent);
+DashboardLoadingFallback.displayName = 'DashboardLoadingFallback';

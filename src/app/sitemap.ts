@@ -350,10 +350,12 @@ function getPopularWeekendDates(): Array<{ checkIn: string; checkOut: string }> 
     const friday = new Date(checkDate.getTime() + (daysUntilFriday * 24 * 60 * 60 * 1000));
     const sunday = new Date(friday.getTime() + (2 * 24 * 60 * 60 * 1000));
     
-    dates.push({
-      checkIn: friday.toISOString().split('T')[0],
-      checkOut: sunday.toISOString().split('T')[0],
-    });
+    const checkIn = friday.toISOString().split('T')[0];
+    const checkOut = sunday.toISOString().split('T')[0];
+
+    if (checkIn && checkOut) {
+      dates.push({ checkIn, checkOut });
+    }
   }
   
   return dates;

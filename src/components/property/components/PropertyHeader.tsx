@@ -8,8 +8,9 @@
  */
 
 import React, { memo, useCallback, useState } from 'react';
-import { Star, MapPin, Share2, Heart, Check, Copy } from 'lucide-react';
+import { MapPin, Share2, Heart, Check, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RatingDisplay } from '@/components/ui/RatingDisplay';
 import { cn } from '@/lib/utils';
 import type { PropertyDetails } from '../types';
 
@@ -130,14 +131,14 @@ export const PropertyHeader = memo(function PropertyHeader({
           compact ? 'space-x-3 text-sm' : 'space-x-4'
         )}>
           {/* Rating */}
-          <div 
-            className="flex items-center space-x-1"
-            aria-label={`Rating: ${property.rating} out of 5 stars, ${property.reviews} reviews`}
-          >
-            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-            <span className="font-medium">{property.rating}</span>
-            <span>({property.reviews} review{property.reviews !== 1 ? 's' : ''})</span>
-          </div>
+          <RatingDisplay
+            rating={property.rating ?? 0}
+            reviews={property.reviews ?? 0}
+            size="md"
+            variant="default"
+            showReviewCount={true}
+            ariaLabel={`Rating: ${property.rating} out of 5 stars, ${property.reviews} reviews`}
+          />
 
           {/* Location */}
           <div 

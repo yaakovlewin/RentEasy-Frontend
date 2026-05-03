@@ -119,12 +119,13 @@ src/components/search/
 All legacy components have been safely removed after updating all imports. The refactored components are now the primary (and only) implementation:
 
 ```typescript
-// Import the optimized components (now the standard)
-import { SearchBar } from '@/components/search';
-// Or use specific variants
-import { SearchBarCompact, SearchBarHeader, SearchBarHero } from '@/components/search';
-// All individual components available
-import { Calendar, DatePicker, GuestSelector, LocationInput } from '@/components/search';
+// Direct imports (recommended for Next.js 15 optimization)
+import { SearchBar, type SearchData } from '@/components/search/SearchBar';
+// Individual components available via direct imports
+import { Calendar } from '@/components/search/Calendar';
+import { UnifiedDatePicker as DatePicker } from '@/components/search/UnifiedDatePicker';
+import { GuestSelector } from '@/components/search/GuestSelector';
+import { LocationInput } from '@/components/search/LocationInput';
 ```
 
 ### Breaking Changes

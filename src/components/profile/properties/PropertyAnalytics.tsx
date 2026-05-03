@@ -9,6 +9,7 @@ import { TrendingUp, TrendingDown, Eye, DollarSign, Percent, Loader2 } from 'luc
 
 interface PropertyAnalyticsProps {
   userId: string;
+  timeframe?: string;
 }
 
 interface AnalyticsData {

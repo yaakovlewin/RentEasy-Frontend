@@ -1,11 +1,12 @@
 /**
  * PropertiesClient - Modern properties API client
- * 
+ *
  * Clean, type-safe property management with intelligent caching,
  * search optimization, and availability checking.
  */
 
 import { HttpClient, ApiResponse } from '../core/HttpClient';
+import { Option } from '../functional';
 
 // Type definitions
 export interface Property {
@@ -318,20 +319,30 @@ class PropertiesClient {
   // Utility methods
 
   /**
-   * Clean search parameters by removing empty values
+   * Clean search parameters by removing empty values using Option monad
    */
   private cleanSearchParams(params: SearchParams): Record<string, any> {
     const cleanParams: Record<string, any> = {};
-    
+
     Object.entries(params).forEach(([key, value]) => {
-      if (value !== null && value !== undefined && value !== '' && value !== 0) {
-        // Handle array parameters
-        if (Array.isArray(value) && value.length > 0) {
-          cleanParams[key] = value;
-        } else if (!Array.isArray(value)) {
-          cleanParams[key] = value;
-        }
-      }
+      // Use Option monad to handle nullable and empty values
+      const valueOption = Option.fromFalsy(value);
+
+      Option.match({
+        some: (val) => {
+          // Handle array parameters
+          if (Array.isArray(val)) {
+            const arrayOption = Option.fromFalsy(val.length > 0 ? val : null);
+            Option.match({
+              some: (arr) => { cleanParams[key] = arr; },
+              none: () => {},
+            })(arrayOption);
+          } else {
+            cleanParams[key] = val;
+          }
+        },
+        none: () => {},
+      })(valueOption);
     });
 
     return cleanParams;

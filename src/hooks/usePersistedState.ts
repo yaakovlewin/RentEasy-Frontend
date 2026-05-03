@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { Result, Option } from '@/lib/api/functional';
 
 // Configuration options for persisted state
 export interface UsePersistedStateOptions<T> {
@@ -54,34 +55,46 @@ class PersistedStorage {
   ): T | null {
     if (!this.isAvailable()) return null;
 
-    try {
-      const item = localStorage.getItem(key);
-      if (!item) return null;
+    const result = Result.tryCatch(() => {
+      const itemOption = Option.fromNullable(localStorage.getItem(key));
 
-      const parsed: PersistedItem<T> = JSON.parse(item);
-      
-      // Check TTL expiration
-      if (parsed.ttl && Date.now() > parsed.timestamp + parsed.ttl) {
-        this.removeItem(key);
+      return Option.match({
+        some: (item) => {
+          const parsed: PersistedItem<T> = JSON.parse(item);
+
+          if (parsed.ttl && Date.now() > parsed.timestamp + parsed.ttl) {
+            this.removeItem(key);
+            return null;
+          }
+
+          const value = options.deserialize ? options.deserialize(JSON.stringify(parsed.value)) : parsed.value;
+
+          const validatorOption = Option.fromNullable(options.validate);
+          const isValid = Option.match({
+            some: (validator) => validator(value),
+            none: () => true,
+          })(validatorOption);
+
+          if (!isValid) {
+            console.warn(`Invalid persisted data for key "${key}"`);
+            this.removeItem(key);
+            return null;
+          }
+
+          return value;
+        },
+        none: () => null,
+      })(itemOption);
+    })();
+
+    return Result.match({
+      ok: (value) => value,
+      err: (error) => {
+        const err = error instanceof Error ? error : new Error(String(error));
+        options.onError?.(err, key, 'read');
         return null;
-      }
-
-      // Deserialize if custom deserializer provided
-      const value = options.deserialize ? options.deserialize(JSON.stringify(parsed.value)) : parsed.value;
-      
-      // Validate if validator provided
-      if (options.validate && !options.validate(value)) {
-        console.warn(`Invalid persisted data for key "${key}"`);
-        this.removeItem(key);
-        return null;
-      }
-
-      return value;
-    } catch (error) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      options.onError?.(err, key, 'read');
-      return null;
-    }
+      },
+    })(result);
   }
 
   static setItem<T>(

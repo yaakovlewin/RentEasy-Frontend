@@ -50,6 +50,39 @@ module.exports = {
       fontFamily: {
         sans: ['var(--font-inter)'],
       },
+      keyframes: {
+        blob: {
+          '0%': { transform: 'translate(0px, 0px) scale(1)' },
+          '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+          '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+          '100%': { transform: 'translate(0px, 0px) scale(1)' },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        'float-delayed': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-15px)' },
+        },
+        'float-slow': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        'float-reverse': {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(20px)' },
+        },
+      },
+      animation: {
+        blob: 'blob 7s infinite',
+        'blob-delayed-2': 'blob 7s infinite 2s',
+        'blob-delayed-4': 'blob 7s infinite 4s',
+        float: 'float 3s ease-in-out infinite',
+        'float-delayed': 'float-delayed 4s ease-in-out infinite 1s',
+        'float-slow': 'float-slow 5s ease-in-out infinite 2s',
+        'float-reverse': 'float-reverse 3.5s ease-in-out infinite 0.5s',
+      },
     },
   },
   plugins: [],

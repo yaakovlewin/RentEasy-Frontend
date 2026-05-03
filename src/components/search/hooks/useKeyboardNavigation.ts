@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 
-interface UseKeyboardNavigationProps {
-  items: any[];
-  onSelect: (item: any, index: number) => void;
+interface UseKeyboardNavigationProps<T> {
+  items: T[];
+  onSelect: (item: T, index: number) => void;
   onEscape?: () => void;
   initialIndex?: number;
 }
@@ -14,12 +14,12 @@ interface UseKeyboardNavigationReturn {
   resetSelection: () => void;
 }
 
-export function useKeyboardNavigation({
+export function useKeyboardNavigation<T>({
   items,
   onSelect,
   onEscape,
   initialIndex = -1,
-}: UseKeyboardNavigationProps): UseKeyboardNavigationReturn {
+}: UseKeyboardNavigationProps<T>): UseKeyboardNavigationReturn {
   const [selectedIndex, setSelectedIndex] = useState(initialIndex);
 
   const handleKeyDown = useCallback(
@@ -27,7 +27,10 @@ export function useKeyboardNavigation({
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex(prev => (prev < items.length - 1 ? prev + 1 : prev));
+          setSelectedIndex(prev => {
+            if (prev === -1) return 0; // Start at first item
+            return prev < items.length - 1 ? prev + 1 : prev;
+          });
           break;
 
         case 'ArrowUp':
@@ -38,7 +41,10 @@ export function useKeyboardNavigation({
         case 'Enter':
           e.preventDefault();
           if (selectedIndex >= 0 && selectedIndex < items.length) {
-            onSelect(items[selectedIndex], selectedIndex);
+            const selectedItem = items[selectedIndex];
+            if (selectedItem !== undefined) {
+              onSelect(selectedItem, selectedIndex);
+            }
           }
           break;
 

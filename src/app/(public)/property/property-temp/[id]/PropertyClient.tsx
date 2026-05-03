@@ -18,11 +18,15 @@ import { ErrorDisplay } from '@/components/ui/ErrorDisplay';
 
 // Enterprise-grade hooks and components
 import { usePropertyDetails } from '@/components/property/hooks';
-import { PropertyDetailsContent } from '@/components/property/components/PropertyDetailsContent';
+import {
+  PropertyDetailsContent,
+  type BookingState,
+  type BookingHandlers
+} from '@/components/property/components/PropertyDetailsContent';
 import { FeatureErrorBoundary } from '@/components/error-boundaries';
 
-import type { 
-  GuestSelection, 
+import type {
+  GuestSelection,
   BookingFormData,
   PropertyError
 } from '@/components/property/types';
@@ -204,9 +208,26 @@ export default function PropertyClient({ propertyId }: PropertyClientProps) {
   /**
    * Main render with enterprise error boundary protection
    */
+
+  // Prepare booking state and handlers
+  const bookingState: BookingState = {
+    checkIn,
+    checkOut,
+    guests,
+    isLoading: isBookingLoading,
+    error: bookingError,
+  };
+
+  const bookingHandlers: BookingHandlers = {
+    onDateSelect: handleDateSelect,
+    onGuestsChange: handleGuestsChange,
+    onBooking: handleBooking,
+    onErrorDismiss: () => setBookingError(null),
+  };
+
   return (
-    <FeatureErrorBoundary 
-      featureName="Property Details Page" 
+    <FeatureErrorBoundary
+      featureName="Property Details Page"
       level="critical"
       enableRetry={true}
       onRetry={refetchProperty}
@@ -230,18 +251,11 @@ export default function PropertyClient({ propertyId }: PropertyClientProps) {
         {/* Main Content */}
         <PropertyDetailsContent
           property={property}
-          checkIn={checkIn}
-          checkOut={checkOut}
-          guests={guests}
-          onDateSelect={handleDateSelect}
-          onGuestsChange={handleGuestsChange}
-          onBooking={handleBooking}
+          bookingState={bookingState}
+          bookingHandlers={bookingHandlers}
           onShare={handleShare}
           onToggleFavorite={handleToggleFavorite}
-          isBookingLoading={isBookingLoading}
           isFavoriteLoading={isFavoriteLoading}
-          bookingError={bookingError}
-          onBookingErrorDismiss={() => setBookingError(null)}
         />
       </div>
     </FeatureErrorBoundary>

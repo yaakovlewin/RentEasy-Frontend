@@ -12,6 +12,7 @@
 import { HttpClient, ApiResponse } from '../core/HttpClient';
 import { tokenManager } from '../core/TokenManager';
 import { DataTransformer } from '../core/DataTransformer';
+import { Result, Option } from '../functional';
 
 // Import enterprise-grade unified types
 import {
@@ -43,51 +44,61 @@ class AuthClient {
    */
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     const startTime = performance.now();
-    
-    try {
-      // Make the API request
-      const response = await this.http.post('/auth/login', credentials);
-      
-      // CRITICAL FIX: Transform backend response to frontend format
-      const transformedData = this.dataTransformer.transformAuthResponse(response.data);
-      
-      // Validate transformation was successful
-      if (!transformedData.token || !transformedData.user) {
-        throw new Error('Invalid authentication response format after transformation');
-      }
-      
-      // Store tokens automatically with enhanced token management
-      tokenManager.setTokens({
-        accessToken: transformedData.token,
-        refreshToken: transformedData.refreshToken,
-        expiresAt: transformedData.tokenExpiry || tokenManager.calculateTokenExpiration(transformedData.token),
-      });
 
-      // Store user info for quick access with session ID
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(transformedData.user));
-        if (transformedData.sessionId) {
-          localStorage.setItem('sessionId', transformedData.sessionId);
+    const result = await Result.fromPromise(
+      this.http.post('/auth/login', credentials)
+    );
+
+    return Result.match({
+      ok: (response) => {
+        // CRITICAL FIX: Transform backend response to frontend format
+        const transformedData = this.dataTransformer.transformAuthResponse(response.data);
+
+        // Validate transformation was successful using Option monad
+        const tokenOption = Option.fromNullable(transformedData.token);
+        const userOption = Option.fromNullable(transformedData.user);
+
+        if (Option.isNone(tokenOption) || Option.isNone(userOption)) {
+          this.recordPerformanceMetric('login', performance.now() - startTime, false, {
+            error: 'Invalid authentication response format after transformation'
+          });
+          throw new Error('Invalid authentication response format after transformation');
         }
-      }
 
-      // Record performance metrics for monitoring
-      this.recordPerformanceMetric('login', performance.now() - startTime, true, {
-        userId: transformedData.user.id,
-        hasRefreshToken: !!transformedData.refreshToken,
-        hasSessionId: !!transformedData.sessionId
-      });
+        // Store tokens automatically with enhanced token management
+        tokenManager.setTokens({
+          accessToken: transformedData.token,
+          refreshToken: transformedData.refreshToken,
+          expiresAt: transformedData.tokenExpiry || tokenManager.calculateTokenExpiration(transformedData.token),
+        });
 
-      return transformedData as AuthResponse;
-      
-    } catch (error) {
-      // Record failed login attempt
-      this.recordPerformanceMetric('login', performance.now() - startTime, false, {
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-      
-      throw this.enhanceAuthError(error, 'LOGIN_FAILED');
-    }
+        // Store user info for quick access with session ID
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(transformedData.user));
+          Option.fromNullable(transformedData.sessionId).match({
+            some: (sessionId) => localStorage.setItem('sessionId', sessionId),
+            none: () => {},
+          });
+        }
+
+        // Record performance metrics for monitoring
+        this.recordPerformanceMetric('login', performance.now() - startTime, true, {
+          userId: transformedData.user.id,
+          hasRefreshToken: !!transformedData.refreshToken,
+          hasSessionId: !!transformedData.sessionId
+        });
+
+        return transformedData as AuthResponse;
+      },
+      err: (error) => {
+        // Record failed login attempt
+        this.recordPerformanceMetric('login', performance.now() - startTime, false, {
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+
+        throw this.enhanceAuthError(error, 'LOGIN_FAILED');
+      },
+    })(result);
   }
 
   /**
@@ -330,45 +341,53 @@ class AuthClient {
    * Get current user from stored data (no API call)
    */
   getCurrentUser(): User | null {
-    try {
+    const result = Result.tryCatch(() => {
       if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('user');
-        return stored ? JSON.parse(stored) : null;
+        const storedUser = Option.fromNullable(localStorage.getItem('user'));
+        return Option.match({
+          some: (stored) => JSON.parse(stored),
+          none: () => null,
+        })(storedUser);
       }
-      
+
       // Fallback: decode from token
-      const payload = tokenManager.getTokenPayload();
-      if (payload) {
-        return {
+      const payloadOption = Option.fromNullable(tokenManager.getTokenPayload());
+      return Option.match({
+        some: (payload) => ({
           id: payload.userId || payload.id,
           firstName: payload.firstName,
           lastName: payload.lastName,
           email: payload.email,
           role: payload.role,
           phoneNumber: payload.phoneNumber,
-        };
-      }
-      
-      return null;
-    } catch {
-      return null;
-    }
+        }),
+        none: () => null,
+      })(payloadOption);
+    })();
+
+    return Result.getOrElse(null)(result);
   }
 
   /**
    * Check if current user has specific role
    */
   hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === role;
+    const userOption = Option.fromNullable(this.getCurrentUser());
+    return Option.match({
+      some: (user) => user.role === role,
+      none: () => false,
+    })(userOption);
   }
 
   /**
    * Check if current user has any of the specified roles
    */
   hasAnyRole(roles: string[]): boolean {
-    const user = this.getCurrentUser();
-    return user ? roles.includes(user.role) : false;
+    const userOption = Option.fromNullable(this.getCurrentUser());
+    return Option.match({
+      some: (user) => roles.includes(user.role),
+      none: () => false,
+    })(userOption);
   }
 
   /**

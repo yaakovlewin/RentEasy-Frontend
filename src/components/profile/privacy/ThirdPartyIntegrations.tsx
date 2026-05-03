@@ -15,7 +15,11 @@ interface Integration {
   description: string;
 }
 
-export function ThirdPartyIntegrations() {
+interface ThirdPartyIntegrationsProps {
+  userId?: string;
+}
+
+export function ThirdPartyIntegrations({ userId }: ThirdPartyIntegrationsProps) {
   const [integrations, setIntegrations] = useState<Integration[]>([
     {
       id: 'google',

@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Monitor, Smartphone, Tablet, MapPin, Clock, LogOut, AlertTriangle } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { SettingsCard } from '@/components/profile/SettingsCard';
 
 interface Session {
   id: string;
@@ -137,34 +137,28 @@ export function SessionManager({ userId }: SessionManagerProps = {}) {
 
   const otherSessionsCount = sessions.filter((s) => !s.current).length;
 
+  const headerAction = otherSessionsCount > 0 ? (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={handleEndAllOtherSessions}
+      disabled={endingSession === 'all'}
+      className="text-red-600 hover:text-red-700"
+    >
+      <LogOut className="mr-2 h-4 w-4" />
+      {endingSession === 'all' ? 'Ending...' : 'End All Other Sessions'}
+    </Button>
+  ) : undefined;
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Monitor className="h-5 w-5" />
-              Active Sessions
-            </CardTitle>
-            <CardDescription>
-              Manage your active sessions across different devices
-            </CardDescription>
-          </div>
-          {otherSessionsCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEndAllOtherSessions}
-              disabled={endingSession === 'all'}
-              className="text-red-600 hover:text-red-700"
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              {endingSession === 'all' ? 'Ending...' : 'End All Other Sessions'}
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
+    <SettingsCard>
+      <SettingsCard.Header
+        title="Active Sessions"
+        description="Manage your active sessions across different devices"
+        icon={Monitor}
+        headerAction={headerAction}
+      />
+      <SettingsCard.Content spacing="md">
         <div className="space-y-4">
           {sessions.map((session) => {
             const DeviceIcon = getDeviceIcon(session.deviceType);
@@ -245,7 +239,7 @@ export function SessionManager({ userId }: SessionManagerProps = {}) {
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </SettingsCard.Content>
+    </SettingsCard>
   );
 }

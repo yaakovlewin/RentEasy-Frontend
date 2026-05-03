@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { useSearch } from '@/contexts/SearchContext';
-import { type SearchData } from '@/components/search';
+import { type SearchData } from '@/components/search/SearchBar';
 
 interface SearchWrapperProps {
   children: React.ReactNode;

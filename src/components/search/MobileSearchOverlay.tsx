@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button';
 
 import { type SearchData, useSearch } from '@/contexts/SearchContext';
 
-import { DatePicker, GuestSelector, LocationInput } from './index';
+import { DatePicker } from './UnifiedDatePicker';
+import { GuestSelector } from './GuestSelector';
+import { LocationInput } from './LocationInput';
 
 interface MobileSearchOverlayProps {
   isOpen: boolean;

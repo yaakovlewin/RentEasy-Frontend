@@ -11,7 +11,6 @@ import {
   Plus,
   Search,
   Star,
-  Users,
   Wifi,
 } from 'lucide-react';
 
@@ -67,7 +66,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   const config = variants[variant];
 
   return (
-    <div className={cn('flex flex-col items-center justify-center p-12 text-center', className)}>
+    <div
+      className={cn('flex flex-col items-center justify-center p-12 text-center', className)}
+      role="status"
+      aria-live="polite"
+    >
       <div
         className={cn(
           'w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-all duration-300 hover:scale-105',
@@ -92,6 +95,7 @@ interface NoSearchResultsProps {
   onClearSearch?: () => void;
   onCreateNew?: () => void;
   suggestions?: string[];
+  onSuggestionClick?: (suggestion: string) => void;
   className?: string;
 }
 
@@ -100,10 +104,11 @@ export const NoSearchResults: React.FC<NoSearchResultsProps> = ({
   onClearSearch,
   onCreateNew,
   suggestions,
+  onSuggestionClick,
   className,
 }) => {
   return (
-    <div className={cn('text-center py-12', className)}>
+    <div className={cn('text-center py-12', className)} role="status" aria-live="polite">
       <div className='w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-6'>
         <Search className='w-8 h-8 text-blue-500' />
       </div>
@@ -124,9 +129,7 @@ export const NoSearchResults: React.FC<NoSearchResultsProps> = ({
               <button
                 key={index}
                 className='px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full transition-colors'
-                onClick={() => {
-                  /* Handle suggestion click */
-                }}
+                onClick={() => onSuggestionClick?.(suggestion)}
               >
                 {suggestion}
               </button>
@@ -323,7 +326,7 @@ export const LoadingFailed: React.FC<{
   className?: string;
 }> = ({ onRetry, error, className }) => {
   return (
-    <div className={cn('text-center py-12', className)}>
+    <div className={cn('text-center py-12', className)} role="status" aria-live="polite">
       <div className='w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6'>
         <Package className='w-8 h-8 text-red-500' />
       </div>
